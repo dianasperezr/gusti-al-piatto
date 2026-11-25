@@ -1,0 +1,13 @@
+[Unit]
+Description=Respaldo externo de Gusti al Piatto
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/gusti-backup.env
+ExecStart=/usr/local/libexec/gusti-backup
+StateDirectory=gusti-backup
+StateDirectoryMode=0700
+UMask=0077
+TimeoutStartSec=2h

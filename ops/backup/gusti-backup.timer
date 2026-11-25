@@ -1,0 +1,9 @@
+[Unit]
+Description=Programar el respaldo externo de Gusti al Piatto
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 America/Mexico_City
+Persistent=true
+
+[Install]
+WantedBy=timers.target

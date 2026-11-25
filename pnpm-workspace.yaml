@@ -1,0 +1,9 @@
+packages:
+  - ops/runtime
+
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - prisma
+  - sharp
+
+injectWorkspacePackages: true

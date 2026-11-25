@@ -1,0 +1,744 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+enum ContentKind {
+  CATEGORY
+  PRODUCT
+  COMBO
+  PROMOTION
+  HOURS
+  SECTION
+  TEMPLATE
+  DESIGN
+  CONTACT
+  CURRENCY
+}
+
+model User {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String        @unique
+  name          String
+  passwordHash  String?       @map("password_hash")
+  role          Role          @default(EDITOR)
+  active        Boolean       @default(true) @map("is_active")
+  sessions      Session[]
+  audit         Audit[]
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at")
+  emailVerified Boolean       @default(false) @map("email_verified")
+  image         String?
+  authSessions  AuthSession[]
+  accounts      Account[]
+
+  @@map("users")
+}
+
+model Session {
+  hash      String   @id
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model LoginAttempt {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
+model Content {
+  id            String         @id @default(uuid())
+  kind          ContentKind
+  name          String
+  description   String         @default("")
+  active        Boolean        @default(true)
+  featured      Boolean        @default(false)
+  archivedAt    DateTime?
+  slug          String?        @unique
+  externalId    String?        @unique
+  priceCents    Int?
+  usdCents      Int?
+  subcategoryId String?
+  subcategory   Content?       @relation("SubcategoryEntries", fields: [subcategoryId], references: [id], onDelete: Restrict)
+  subentries    Content[]      @relation("SubcategoryEntries")
+  gallery       ContentMedia[]
+  published     Boolean        @default(false)
+  position      Int            @default(0)
+  categoryId    String?
+  category      Content?       @relation("CategoryEntries", fields: [categoryId], references: [id], onDelete: Restrict)
+  entries       Content[]      @relation("CategoryEntries")
+  mediaId       String?        @db.Uuid
+  media         Media?         @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+  options       Json
+  comboItems    ComboItem[]    @relation("Combo")
+  usedIn        ComboItem[]    @relation("ComboProduct")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([kind, published, position])
+  @@index([kind, position, name, id])
+  @@index([categoryId])
+  @@index([subcategoryId])
+  @@index([mediaId])
+}
+
+model ComboItem {
+  comboId   String
+  quantity  Int     @default(1)
+  productId String
+  combo     Content @relation("Combo", fields: [comboId], references: [id], onDelete: Cascade)
+  product   Content @relation("ComboProduct", fields: [productId], references: [id], onDelete: Restrict)
+
+  @@id([comboId, productId])
+  @@index([productId])
+}
+
+model Media {
+  id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String               @map("original_filename")
+  mime        String               @map("mime_type")
+  size        Int                  @map("file_size")
+  path        String?              @unique @map("storage_key")
+  thumbnail   String?              @map("thumbnail_key")
+  duration    Float?
+  gallery     ContentMedia[]
+  contents    Content[]
+  createdAt   DateTime             @default(now()) @map("created_at")
+  width       Int?
+  height      Int?
+  mediaType   MediaType            @default(IMAGE) @map("media_type")
+  logos       RestaurantSettings[]
+  categories  Category[]
+  dishMedia   DishMedia[]
+  bundleMedia BundleMedia[]
+
+  @@index([createdAt, id])
+  @@index([name, id])
+  @@map("media_assets")
+}
+
+model Audit {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action       String
+  target       String
+  createdAt    DateTime @default(now()) @map("created_at")
+  entityType   String   @default("LEGACY") @map("entity_type")
+  entityId     String?  @map("entity_id") @db.Uuid
+  previousData Json?    @map("previous_data")
+  newData      Json?    @map("new_data")
+
+  @@index([createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+model IntegrationState {
+  key   String @id
+  value Json
+}
+
+model ContentMedia {
+  contentId String
+  mediaId   String  @db.Uuid
+  position  Int
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([contentId, mediaId])
+  @@index([mediaId])
+}
+
+enum OrderRequestStatus {
+  LINK_GENERATED
+  CANCELLED
+}
+
+model OrderRequest {
+  id                      String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reference               String             @unique @map("reference_code")
+  status                  OrderRequestStatus @default(LINK_GENERATED)
+  snapshot                Json
+  createdAt               DateTime           @default(now()) @map("created_at")
+  customerName            String?            @map("customer_name")
+  customerNote            String?            @map("customer_note")
+  currencyCode            CurrencyCode       @map("currency_code")
+  baseCurrency            CurrencyCode       @map("base_currency")
+  exchangeRateSnapshot    Decimal            @map("exchange_rate_snapshot") @db.Decimal(24, 12)
+  subtotalCents           BigInt             @map("subtotal_cents")
+  discountCents           BigInt             @map("discount_cents")
+  totalCents              BigInt             @map("total_cents")
+  whatsappLinkGeneratedAt DateTime?          @map("whatsapp_link_generated_at")
+  items                   OrderIntentItem[]
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@map("order_intents")
+}
+
+enum CurrencyCode {
+  MXN
+  USD
+}
+
+enum RoundingMode {
+  CENT
+  WHOLE
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum BundlePricingMode {
+  FIXED
+  SUM
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FIXED_GROUP_PRICE
+}
+
+enum ScheduleBehavior {
+  HIDE
+  UNAVAILABLE
+}
+
+enum ScheduleExceptionType {
+  OPEN
+  CLOSED
+}
+
+enum ExportFormat {
+  PDF
+  PNG
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum OrderItemType {
+  DISH
+  BUNDLE
+  LEGACY
+}
+
+enum IntegrationStatus {
+  DISABLED
+  ENABLED
+  ERROR
+}
+
+enum SyncOperation {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum SyncConflictStatus {
+  OPEN
+  RESOLVED
+}
+
+model RestaurantSettings {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  restaurantName    String         @map("restaurant_name")
+  description       String         @default("")
+  logoMediaId       String?        @map("logo_media_id") @db.Uuid
+  logo              Media?         @relation(fields: [logoMediaId], references: [id], onDelete: SetNull)
+  primaryColor      String         @map("primary_color")
+  secondaryColor    String         @map("secondary_color")
+  backgroundColor   String         @map("background_color")
+  timezone          String         @default("America/Mexico_City")
+  baseCurrency      CurrencyCode   @default(MXN) @map("base_currency")
+  enabledCurrencies CurrencyCode[] @default([MXN]) @map("enabled_currencies")
+  phone             String?
+  whatsapp          String?
+  address           String?
+  socialLinks       Json           @default("{}") @map("social_links")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @default(now()) @updatedAt @map("updated_at")
+
+  @@index([logoMediaId])
+  @@map("restaurant_settings")
+}
+
+model CurrencySettings {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  currencyCode CurrencyCode @unique @map("currency_code")
+  exchangeRate Decimal      @map("exchange_rate") @db.Decimal(24, 12)
+  roundingMode RoundingMode @default(CENT) @map("rounding_mode")
+  isEnabled    Boolean      @default(false) @map("is_enabled")
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at")
+
+  @@map("currency_settings")
+}
+
+model Category {
+  id            String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalId    String?                @unique @map("external_id")
+  name          String
+  slug          String                 @unique
+  description   String                 @default("")
+  imageMediaId  String?                @map("image_media_id") @db.Uuid
+  image         Media?                 @relation(fields: [imageMediaId], references: [id], onDelete: SetNull)
+  sortOrder     Int                    @default(0) @map("sort_order")
+  isActive      Boolean                @default(true) @map("is_active")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @default(now()) @updatedAt @map("updated_at")
+  deletedAt     DateTime?              @map("deleted_at")
+  dishes        Dish[]
+  scheduleRules CategoryScheduleRule[]
+
+  @@index([isActive, deletedAt, sortOrder])
+  @@index([imageMediaId])
+  @@map("categories")
+}
+
+model Dish {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalId      String?             @unique @map("external_id")
+  name            String
+  slug            String              @unique
+  description     String              @default("")
+  longDescription String              @default("") @map("long_description")
+  priceCents      Int                 @map("price_cents")
+  categoryId      String              @map("category_id") @db.Uuid
+  category        Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  isActive        Boolean             @default(true) @map("is_active")
+  isPublished     Boolean             @default(false) @map("is_published")
+  isFeatured      Boolean             @default(false) @map("is_featured")
+  sortOrder       Int                 @default(0) @map("sort_order")
+  ingredients     String[]            @default([])
+  allergens       String[]            @default([])
+  dietaryTags     String[]            @default([]) @map("dietary_tags")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at")
+  deletedAt       DateTime?           @map("deleted_at")
+  variants        DishVariant[]
+  modifierGroups  DishModifierGroup[]
+  media           DishMedia[]
+  bundleItems     BundleItem[]
+  promotions      PromotionDish[]
+  scheduleRules   DishScheduleRule[]
+
+  @@index([categoryId, isPublished, isActive, deletedAt, sortOrder])
+  @@map("dishes")
+}
+
+model DishVariant {
+  id                   String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dishId               String  @map("dish_id") @db.Uuid
+  dish                 Dish    @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  name                 String
+  priceAdjustmentCents Int     @default(0) @map("price_adjustment_cents")
+  isActive             Boolean @default(true) @map("is_active")
+  sortOrder            Int     @default(0) @map("sort_order")
+
+  @@index([dishId, sortOrder])
+  @@map("dish_variants")
+}
+
+model DishModifierGroup {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dishId        String         @map("dish_id") @db.Uuid
+  dish          Dish           @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  name          String
+  minSelections Int            @default(0) @map("min_selections")
+  maxSelections Int            @map("max_selections")
+  isRequired    Boolean        @default(false) @map("is_required")
+  modifiers     DishModifier[]
+
+  @@index([dishId])
+  @@map("dish_modifier_groups")
+}
+
+model DishModifier {
+  id                   String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  modifierGroupId      String            @map("modifier_group_id") @db.Uuid
+  modifierGroup        DishModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  name                 String
+  priceAdjustmentCents Int               @default(0) @map("price_adjustment_cents")
+  isActive             Boolean           @default(true) @map("is_active")
+  sortOrder            Int               @default(0) @map("sort_order")
+
+  @@index([modifierGroupId, sortOrder])
+  @@map("dish_modifiers")
+}
+
+model DishMedia {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dishId       String  @map("dish_id") @db.Uuid
+  dish         Dish    @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  mediaAssetId String  @map("media_asset_id") @db.Uuid
+  mediaAsset   Media   @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+  isPrimary    Boolean @default(false) @map("is_primary")
+  sortOrder    Int     @default(0) @map("sort_order")
+  altText      String? @map("alt_text")
+
+  @@unique([dishId, mediaAssetId])
+  @@index([dishId, sortOrder])
+  @@index([mediaAssetId])
+  @@map("dish_media")
+}
+
+model Bundle {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalId  String?           @unique @map("external_id")
+  name        String
+  slug        String            @unique
+  description String            @default("")
+  priceCents  Int?              @map("price_cents")
+  pricingMode BundlePricingMode @map("pricing_mode")
+  isActive    Boolean           @default(true) @map("is_active")
+  isPublished Boolean           @default(false) @map("is_published")
+  isFeatured  Boolean           @default(false) @map("is_featured")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at")
+  items       BundleItem[]
+  media       BundleMedia[]
+  promotions  PromotionBundle[]
+
+  @@index([isPublished, isActive, isFeatured])
+  @@map("bundles")
+}
+
+model BundleItem {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bundleId  String @map("bundle_id") @db.Uuid
+  bundle    Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  dishId    String @map("dish_id") @db.Uuid
+  dish      Dish   @relation(fields: [dishId], references: [id], onDelete: Restrict)
+  quantity  Int    @default(1)
+  sortOrder Int    @default(0) @map("sort_order")
+
+  @@unique([bundleId, dishId])
+  @@index([bundleId, sortOrder])
+  @@index([dishId])
+  @@map("bundle_items")
+}
+
+model BundleMedia {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bundleId     String  @map("bundle_id") @db.Uuid
+  bundle       Bundle  @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  mediaAssetId String  @map("media_asset_id") @db.Uuid
+  mediaAsset   Media   @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+  isPrimary    Boolean @default(false) @map("is_primary")
+  sortOrder    Int     @default(0) @map("sort_order")
+
+  @@unique([bundleId, mediaAssetId])
+  @@index([bundleId, sortOrder])
+  @@index([mediaAssetId])
+  @@map("bundle_media")
+}
+
+model Promotion {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalId    String?           @unique @map("external_id")
+  name          String
+  description   String            @default("")
+  discountType  DiscountType      @map("discount_type")
+  discountValue Int               @map("discount_value")
+  startDate     DateTime          @map("start_date") @db.Timestamptz(3)
+  endDate       DateTime          @map("end_date") @db.Timestamptz(3)
+  active        Boolean           @default(true)
+  priority      Int               @default(0)
+  terms         String            @default("")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @default(now()) @updatedAt @map("updated_at")
+  dishes        PromotionDish[]
+  bundles       PromotionBundle[]
+
+  @@index([active, startDate, endDate])
+  @@map("promotions")
+}
+
+model PromotionDish {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  promotionId String    @map("promotion_id") @db.Uuid
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  dishId      String    @map("dish_id") @db.Uuid
+  dish        Dish      @relation(fields: [dishId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, dishId])
+  @@index([dishId])
+  @@map("promotion_dishes")
+}
+
+model PromotionBundle {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  promotionId String    @map("promotion_id") @db.Uuid
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  bundleId    String    @map("bundle_id") @db.Uuid
+  bundle      Bundle    @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, bundleId])
+  @@index([bundleId])
+  @@map("promotion_bundles")
+}
+
+model ScheduleRule {
+  id         String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String
+  startTime  DateTime               @map("start_time") @db.Time(0)
+  endTime    DateTime               @map("end_time") @db.Time(0)
+  weekdays   Int[]
+  priority   Int                    @default(0)
+  behavior   ScheduleBehavior
+  isActive   Boolean                @default(true) @map("is_active")
+  createdAt  DateTime               @default(now()) @map("created_at")
+  updatedAt  DateTime               @default(now()) @updatedAt @map("updated_at")
+  dishes     DishScheduleRule[]
+  categories CategoryScheduleRule[]
+
+  @@index([isActive, priority])
+  @@map("schedule_rules")
+}
+
+model DishScheduleRule {
+  dishId         String       @map("dish_id") @db.Uuid
+  scheduleRuleId String       @map("schedule_rule_id") @db.Uuid
+  dish           Dish         @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  scheduleRule   ScheduleRule @relation(fields: [scheduleRuleId], references: [id], onDelete: Cascade)
+
+  @@id([dishId, scheduleRuleId])
+  @@index([scheduleRuleId])
+  @@map("dish_schedule_rules")
+}
+
+model CategoryScheduleRule {
+  categoryId     String       @map("category_id") @db.Uuid
+  scheduleRuleId String       @map("schedule_rule_id") @db.Uuid
+  category       Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  scheduleRule   ScheduleRule @relation(fields: [scheduleRuleId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, scheduleRuleId])
+  @@index([scheduleRuleId])
+  @@map("category_schedule_rules")
+}
+
+model ScheduleException {
+  id            String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date          DateTime              @db.Date
+  startTime     DateTime?             @map("start_time") @db.Time(0)
+  endTime       DateTime?             @map("end_time") @db.Time(0)
+  exceptionType ScheduleExceptionType @map("exception_type")
+  description   String                @default("")
+
+  @@index([date])
+  @@map("schedule_exceptions")
+}
+
+model SiteSettings {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  headerType       String        @map("header_type")
+  navigationType   String        @map("navigation_type")
+  footerConfig     Json          @default("{}") @map("footer_config")
+  themeConfig      Json          @default("{}") @map("theme_config")
+  typographyConfig Json          @default("{}") @map("typography_config")
+  publishedAt      DateTime?     @map("published_at")
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at")
+  sections         SiteSection[]
+
+  @@map("site_settings")
+}
+
+model SiteSection {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  siteSettingsId String       @map("site_settings_id") @db.Uuid
+  siteSettings   SiteSettings @relation(fields: [siteSettingsId], references: [id], onDelete: Cascade)
+  sectionType    String       @map("section_type")
+  title          String
+  contentConfig  Json         @default("{}") @map("content_config")
+  sortOrder      Int          @default(0) @map("sort_order")
+  isVisible      Boolean      @default(true) @map("is_visible")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+
+  @@index([siteSettingsId, isVisible, sortOrder])
+  @@map("site_sections")
+}
+
+model DesignTemplate {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  description  String      @default("")
+  templateType String      @map("template_type")
+  layoutConfig Json        @default("{}") @map("layout_config")
+  isActive     Boolean     @default(true) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @default(now()) @updatedAt @map("updated_at")
+  exports      ExportJob[]
+
+  @@map("design_templates")
+}
+
+model ExportJob {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  templateId    String         @map("template_id") @db.Uuid
+  template      DesignTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  exportFormat  ExportFormat   @map("export_format")
+  selectedItems Json           @default("[]") @map("selected_items")
+  currencyCode  CurrencyCode   @map("currency_code")
+  status        JobStatus      @default(PENDING)
+  filePath      String?        @map("file_path")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  completedAt   DateTime?      @map("completed_at")
+
+  @@index([status, createdAt])
+  @@index([templateId])
+  @@map("export_jobs")
+}
+
+model WhatsappSettings {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  countryCode         String   @map("country_code")
+  phoneNumber         String   @map("phone_number")
+  internationalNumber String   @map("international_number")
+  defaultMessage      String   @default("") @map("default_message")
+  orderButtonText     String   @default("Pedir por WhatsApp") @map("order_button_text")
+  isEnabled           Boolean  @default(false) @map("is_enabled")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("whatsapp_settings")
+}
+
+model OrderIntentItem {
+  id                    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderIntentId         String        @map("order_intent_id") @db.Uuid
+  orderIntent           OrderRequest  @relation(fields: [orderIntentId], references: [id], onDelete: Cascade)
+  itemType              OrderItemType @map("item_type")
+  itemId                String        @map("item_id") @db.Uuid
+  itemNameSnapshot      String        @map("item_name_snapshot")
+  quantity              Int
+  unitPriceCents        BigInt        @map("unit_price_cents")
+  subtotalCents         BigInt        @map("subtotal_cents")
+  configurationSnapshot Json          @default("{}") @map("configuration_snapshot")
+
+  @@index([orderIntentId])
+  @@index([itemType, itemId])
+  @@map("order_intent_items")
+}
+
+model SyncIntegration {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider      String            @unique
+  status        IntegrationStatus @default(DISABLED)
+  configuration Json              @default("{}")
+  lastSyncAt    DateTime?         @map("last_sync_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @default(now()) @updatedAt @map("updated_at")
+
+  @@map("sync_integrations")
+}
+
+model SyncEvent {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source      String
+  entityType  String        @map("entity_type")
+  entityId    String        @map("entity_id") @db.Uuid
+  operation   SyncOperation
+  payload     Json
+  status      JobStatus     @default(PENDING)
+  attempts    Int           @default(0)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  processedAt DateTime?     @map("processed_at")
+
+  @@index([status, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@map("sync_events")
+}
+
+model SyncConflict {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityType     String             @map("entity_type")
+  entityId       String             @map("entity_id") @db.Uuid
+  fieldName      String             @map("field_name")
+  databaseValue  Json               @map("database_value")
+  externalValue  Json               @map("external_value")
+  conflictStatus SyncConflictStatus @default(OPEN) @map("conflict_status")
+  resolution     Json?
+  createdAt      DateTime           @default(now()) @map("created_at")
+  resolvedAt     DateTime?          @map("resolved_at")
+
+  @@index([conflictStatus, createdAt])
+  @@index([entityType, entityId, fieldName])
+  @@map("sync_conflicts")
+}
+
+model AuthSession {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model Account {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("auth_accounts")
+}
+
+model Verification {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@index([expiresAt])
+  @@map("auth_verifications")
+}

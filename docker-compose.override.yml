@@ -1,0 +1,12 @@
+services:
+  app:
+    environment:
+      COOKIE_SECURE: "${COOKIE_SECURE:-false}"
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+  db:
+    networks:
+      - default
+      - database
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"

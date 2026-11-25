@@ -1,0 +1,11 @@
+{
+  "name": "@gusti/runtime-tools",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^17",
+    "pg": "^8",
+    "prisma": "^7",
+    "zod": "^4"
+  }
+}

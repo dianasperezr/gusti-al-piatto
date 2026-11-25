@@ -1,0 +1,82 @@
+x-logging: &service-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+    init: true
+    restart: unless-stopped
+    mem_limit: 1024m
+    cpus: 1.0
+    stop_grace_period: 30s
+    logging: *service-logging
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=512"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:?Define POSTGRES_USER}:${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:?Define POSTGRES_DB}?schema=public"
+      COOKIE_SECURE: "${COOKIE_SECURE:-true}"
+      APP_ORIGIN: "${APP_ORIGIN:-}"
+      ORDER_TRUST_PROXY: "${ORDER_TRUST_PROXY:-false}"
+      MEDIA_MAX_MB: "${MEDIA_MAX_MB:-15}"
+      MEDIA_VIDEO_MAX_SECONDS: "${MEDIA_VIDEO_MAX_SECONDS:-30}"
+      GOOGLE_SHEETS_ID: "${GOOGLE_SHEETS_ID:-}"
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: "${GOOGLE_SERVICE_ACCOUNT_EMAIL:-}"
+      GOOGLE_SERVICE_ACCOUNT_KEY: "${GOOGLE_SERVICE_ACCOUNT_KEY:-}"
+      CANVA_CLIENT_ID: "${CANVA_CLIENT_ID:-}"
+      CANVA_CLIENT_SECRET: "${CANVA_CLIENT_SECRET:-}"
+      CANVA_REDIRECT_URI: "${CANVA_REDIRECT_URI:-}"
+      INTEGRATION_ENCRYPTION_KEY: "${INTEGRATION_ENCRYPTION_KEY:-}"
+    volumes:
+      - menu_media:/app/storage
+    networks:
+      - default
+      - database
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 0.75
+    shm_size: 128m
+    stop_grace_period: 60s
+    logging: *service-logging
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=32"]
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:?Define POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER:?Define POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  postgres_data:
+    external: "${GUSTI_EXTERNAL_VOLUMES:-false}"
+    name: "${POSTGRES_VOLUME_NAME:-${COMPOSE_PROJECT_NAME}_postgres_data}"
+  menu_media:
+    external: "${GUSTI_EXTERNAL_VOLUMES:-false}"
+    name: "${MENU_MEDIA_VOLUME_NAME:-${COMPOSE_PROJECT_NAME}_menu_media}"
+
+networks:
+  database:
+    internal: true
