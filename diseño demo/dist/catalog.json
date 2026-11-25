@@ -1,0 +1,346 @@
+[
+  {
+    "id": "p01",
+    "name": "Higo Ricota",
+    "description": "Higo, queso ricota, pistaches, miel y salsa de berries.",
+    "price": 140,
+    "category": "Entradas y ensaladas",
+    "image": null
+  },
+  {
+    "id": "p02",
+    "name": "Focaccia Marinara",
+    "description": "Pan focaccia a la leña con aceite de ajo, especias y queso parmesano.",
+    "price": 140,
+    "category": "Entradas y ensaladas",
+    "image": null
+  },
+  {
+    "id": "p03",
+    "name": "Champiñones Rellenos Tres Quesos",
+    "description": "Champiñones horneados en su jugo a la leña con queso mozzarella, parmesano, mozzarella fresca, aceite de ajo y especias. Con dip de crema de pesto.",
+    "price": 140,
+    "category": "Entradas y ensaladas",
+    "image": "assets/menu-0-0.jpeg"
+  },
+  {
+    "id": "p04",
+    "name": "Lucca Griega",
+    "description": "Lechuga mixta, aceitunas Kalamata, mozzarella fresca, cherrys, pepino, vinagreta italiana y alcachofa. Pidala (revuelta o como topin).",
+    "price": 150,
+    "category": "Entradas y ensaladas",
+    "image": null
+  },
+  {
+    "id": "p05",
+    "name": "Ensalada Caprece",
+    "description": "Rebanadas de tomate bola, mozzarella fresca, aderezo pesto, vinagreta balsámica y hoja de albahaca.",
+    "price": 160,
+    "category": "Entradas y ensaladas",
+    "image": null
+  },
+  {
+    "id": "p06",
+    "name": "Ensalada de Pera y Gorgonzola",
+    "description": "Lechuga mixta, nuez, pera, queso gorgonzola o queso de cabra con ceniza y vinagreta balsámica.",
+    "price": 160,
+    "category": "Entradas y ensaladas",
+    "image": null
+  },
+  {
+    "id": "p07",
+    "name": "Pomodoro",
+    "description": "Pasta penne, salsa pomodoro, ajo, mantequilla, espinaca salteada y queso parmesano.",
+    "price": 230,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p08",
+    "name": "Carbonara",
+    "description": "Spaghetti, salsa carbonara hecha con panceta, yema de huevo orgánico, crema y queso parmesano.",
+    "price": 240,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p09",
+    "name": "Ravioles Tres Quesos y Espinaca",
+    "description": "Ravioles rellenos de ricota y espinaca, salsa rosa hecha con aceite de ajo, salsa pomodoro, crema y queso grana padano.",
+    "price": 280,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p10",
+    "name": "Fettuccini Boloñesa",
+    "description": "Pasta fettuccine fresca con salsa tradicional boloñesa, vino tinto, carne de res y queso grana padano.",
+    "price": 280,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p11",
+    "name": "Tortellini de Carne, Salsa de Albahaca",
+    "description": "Hechos en casa con pasta fresca, rellenos de carne de res, salsa de albahaca y ajo, queso parmesano.",
+    "price": 280,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p12",
+    "name": "Chicken Alfredo Fettuccini",
+    "description": "Hecha con pasta fetuccini fresca, crema, ajo, orégano, pechuga de pollo y queso parmesano.",
+    "price": 280,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p13",
+    "name": "Lasaña de Carne y Dos Quesos",
+    "description": "Hecha en casa con pasta fresca, salsa boloñesa con carne de res, duxel de champiñones, gratinada con queso mozzarella y bechamel.",
+    "price": 290,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p14",
+    "name": "Pesto Serrano",
+    "description": "Pasta fusilli, salsa pesto hecha en casa, tomates cherry, queso parmesano, jamón serrano y piñón.",
+    "price": 290,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p15",
+    "name": "Gamberi Scampi",
+    "description": "Pasta penne, salsa scampi hecha con limón, mantequilla, camarones, vino blanco, salsa pomodoro y perejil.",
+    "price": 320,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p16",
+    "name": "Salmón al Cliente",
+    "description": "Cocinado al gusto (a la leña o a la sartén). Elige tu salsa: marinara, rosa, al ajo, a la mantequilla, al pesto o alfredo. Con tu pasta: fettuccini, espagueti, penne o fusilli.",
+    "price": 360,
+    "category": "Pastas",
+    "image": null
+  },
+  {
+    "id": "p17",
+    "name": "Garlic Bread",
+    "description": "Mozzarella rallada, pomada de ajo y mantequilla con especias y queso grana padano.",
+    "price": 200,
+    "category": "Pizzas clásicas",
+    "image": null
+  },
+  {
+    "id": "p18",
+    "name": "Margherita Tradicional",
+    "description": "Salsa pomodoro, rebanada de jitomate, queso mozzarella, parmesano y salsa pesto.",
+    "price": 240,
+    "category": "Pizzas clásicas",
+    "image": null
+  },
+  {
+    "id": "p19",
+    "name": "Pepperoni",
+    "description": "Salsa pomodoro, queso mozzarella rallado y pepperoni.",
+    "price": 250,
+    "category": "Pizzas clásicas",
+    "image": null
+  },
+  {
+    "id": "p20",
+    "name": "Hawaiana",
+    "description": "Salsa pomodoro, queso mozzarella rallado, jamón de pavo y piña.",
+    "price": 260,
+    "category": "Pizzas clásicas",
+    "image": null
+  },
+  {
+    "id": "p21",
+    "name": "Gusti Carbonara",
+    "description": "Crema, queso mozzarella, tocino, aceitunas Kalamata y cebolla.",
+    "price": 250,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p22",
+    "name": "Portobello",
+    "description": "Salsa arrabiata (picante), portobello a las finas hierbas, queso grana padano, queso mozzarella y pancetta.",
+    "price": 250,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p23",
+    "name": "Calciofo",
+    "description": "Crema, alcachofa, queso mozzarella, pepperoni, champiñón y parmesano.",
+    "price": 260,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p24",
+    "name": "Tre Formaggi",
+    "description": "Salsa pomodoro, queso provolone, queso mozzarella y queso de cabra.",
+    "price": 260,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p25",
+    "name": "Capricciosa",
+    "description": "Salsa pomodoro, queso mozzarella, jamón de pavo, aceitunas, champiñones, albahaca fresca y grana padano.",
+    "price": 280,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p26",
+    "name": "Vegetariana",
+    "description": "Salsa pomodoro, calabaza, morrones, cebolla morada, champiñones, aceitunas Kalamata/alcachofa, arúgula, queso grana padano y aceite de olivo.",
+    "price": 280,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p27",
+    "name": "Pera y Gorgonzola",
+    "description": "Aceite de olivo, pera, queso gorgonzola, queso mozzarella fresca y nuez.",
+    "price": 300,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p28",
+    "name": "Bologñia di Pietro",
+    "description": "Salsa bologñesa, queso mozzarella, provolone, pepperoni, espinaca fresca y parmesano.",
+    "price": 300,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p29",
+    "name": "Enrique de Lazio",
+    "description": "Salsa cremosa, queso ricotta, espinaca salteada al ajo, salchicha italiana, alcachofa y queso parmesano.",
+    "price": 300,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p30",
+    "name": "Polpeta",
+    "description": "Salsa pomodoro, albóndiga italiana, jamón de pavo, queso mozzarella, queso grana padano, chile morrón y cebollín verde.",
+    "price": 300,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p31",
+    "name": "Potato Trufa",
+    "description": "Aceite de trufa, champiñones salteados, aceitunas verdes, mozzarella, queso de cabra y purple potato chips.",
+    "price": 320,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p32",
+    "name": "Pesto Serrano",
+    "description": "Salsa pesto, queso mozzarella fresca, jamón serrano, arúgula, tomates cherry y piñón blanco.",
+    "price": 350,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p33",
+    "name": "Gorgonzola Serrano",
+    "description": "Crema de queso gorgonzola, champiñones, jamón serrano, queso mozzarella fresca, queso grana padano y tomates deshidratados.",
+    "price": 350,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p34",
+    "name": "Cajun Spice Gamberi",
+    "description": "Salsa marinara, 160 gr de camarones salteados en especias, queso mozzarella, morrones, cebolla curtida, parmesano, perejil y aceitunas verdes.",
+    "price": 350,
+    "category": "Pizzas italianas",
+    "image": null
+  },
+  {
+    "id": "p35",
+    "name": "Ice Cream",
+    "description": "Tres bolas de helado (preguntar sabores).",
+    "price": 80,
+    "category": "Postres",
+    "image": null
+  },
+  {
+    "id": "p36",
+    "name": "Crème Brûlée",
+    "description": "Flameada con costra de azúcar.",
+    "price": 99,
+    "category": "Postres",
+    "image": null
+  },
+  {
+    "id": "p37",
+    "name": "Tarta de Pera y Queso Brie en Salsa de Zarzamoras",
+    "description": "Hecha en casa a la leña, con compota de pera, bola de helado de vainilla y salsa de Zarzamoras.",
+    "price": 130,
+    "category": "Postres",
+    "image": null
+  },
+  {
+    "id": "p38",
+    "name": "Brownie de Chocolate con Nuez",
+    "description": "Hecho en casa con chocolate, nuez y bola de helado de vainilla. Pídalo caliente o frío.",
+    "price": 130,
+    "category": "Postres",
+    "image": null
+  },
+  {
+    "id": "p39",
+    "name": "Tiramisú",
+    "description": "Galleta soleta, amaretto, café y queso mascarpone.",
+    "price": 150,
+    "category": "Postres",
+    "image": null
+  },
+  {
+    "id": "p40",
+    "name": "La Mafia",
+    "price": 290,
+    "description": "Crema, jamón, mozzarella, alcachofa, champiñón, queso de cabra, queso parmesano, aceite de ajo y albahaca.",
+    "category": "Calzones",
+    "image": null
+  },
+  {
+    "id": "p41",
+    "name": "Capo di Tutti",
+    "price": 290,
+    "description": "Salsa arrabbiata, mozzarella fresca, espinaca salteada, pepperoni, queso de cabra, parmesano y aceite de ajo.",
+    "category": "Calzones",
+    "image": null
+  },
+  {
+    "id": "p42",
+    "name": "Ricotta",
+    "price": 300,
+    "description": "Queso ricotta, queso mozzarella, parmesano, aceite de ajo y salsa marinara.",
+    "category": "Calzones",
+    "image": null
+  },
+  {
+    "id": "p43",
+    "name": "Piatto della Vita",
+    "price": 330,
+    "description": "Salsa pesto, mozzarella, cherrys, pancetta; calzone de pasta carbonara con queso mozzarella. 3 en 1.",
+    "category": "Calzones",
+    "image": null
+  }
+]
