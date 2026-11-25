@@ -14,7 +14,7 @@ import type { CatalogItem, PublicMedia } from "./pricing";
 const mediaInfo = { select: { id: true, mime: true, thumbnail: true } } as const;
 const mediaUrl = (id: string) => `/media/${id}`;
 const describeMedia = (media: { id: string; mime: string; thumbnail: string | null } | null): PublicMedia | null => media && ({
-  src: mediaUrl(media.id), video: media.mime.startsWith("video/"),
+  id: media.id, src: mediaUrl(media.id), video: media.mime.startsWith("video/"),
   poster: media.thumbnail ? mediaUrl(media.id) + "?thumbnail=1" : undefined,
 });
 
@@ -37,14 +37,14 @@ async function readMenu(preview = false) {
   return { records, visual, assets };
 }
 
-const publicMenuData = unstable_cache(() => readMenu(), ["public-menu-v1"], { tags: [publicMenuTag], revalidate: 60 });
+const publicMenuData = unstable_cache(() => readMenu(), ["public-menu-v3"], { tags: [publicMenuTag], revalidate: 60 });
 const renderMenuData = cache(publicMenuData);
 
 export async function getMenu(date = new Date(), preview = false, fresh = false) {
   const { records, visual, assets } = preview || fresh ? await readMenu(preview) : await renderMenuData();
   const design = records.find(record => record.kind === "DESIGN");
   const appearance = parseOptions("DESIGN", design?.options ?? {
-    eyebrow: "Cocina italiana", accent: "#a84027", background: "#f8f4e9", logoId: "",
+    eyebrow: "Cocina italiana", accent: "#a94f2b", background: "#f8f3e8", logoId: "",
   });
   const contact = parseOptions("CONTACT", records.find(record => record.kind === "CONTACT")?.options ?? {
     whatsapp: "", ordering: false, address: "", phone: "", instagram: "", facebook: "", timezone: "America/Mexico_City",
@@ -100,8 +100,8 @@ export async function getMenu(date = new Date(), preview = false, fresh = false)
     const data = parseOptions("PRODUCT", record.options);
     const item: CatalogItem = {
       id: record.id, slug: record.slug ?? undefined, kind: "PRODUCT", name: record.name,
-      description: record.description, details: data.details, tags: data.tags, ingredients: data.ingredients,
-      allergens: data.allergens, nutrition: data.nutrition, groups: data.groups, components: [],
+      description: record.description, details: data.details, ingredients: data.ingredients,
+      nutrition: data.nutrition, groups: data.groups, components: [],
       media: describeMedia(record.media), gallery: record.gallery.flatMap(asset => describeMedia(asset.media) ?? []),
       categoryId: record.categoryId, subcategory: sub?.record.name ?? null,
       priceCents: record.priceCents ?? 0,

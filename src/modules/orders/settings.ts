@@ -9,7 +9,6 @@ export const orderSettings = {
   ordering: z.boolean(),
   cartEnabled: z.boolean().default(true),
   respectHours: z.boolean().default(false),
-  acceptedCurrency: z.enum(["MXN", "USD"]).default("MXN"),
   actionText: z.string().trim().max(90).default(""),
   introduction: z.string().trim().max(300).default("Hola, quisiera realizar el siguiente pedido:"),
   confirmationText: z.string().trim().max(300).default("Tu solicitud está preparada para que la envíes por WhatsApp."),

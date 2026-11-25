@@ -37,8 +37,7 @@ const dishes = [
   [4, "Espresso doble", "Café de tueste medio con notas de cacao.", 5500],
 ];
 const sections = [
-  { ...emptySection(id(40), "hero"), title: "Gusti al Piatto" },
-  { ...emptySection(id(41), "catalog"), title: "A la carta" },
+  emptySection(id(40), "hero"), emptySection(id(41), "catalog"),
   { ...emptySection(id(42), "combos"), title: "Para compartir" },
   { ...emptySection(id(43), "promotions"), title: "Promociones" },
   emptySection(id(44), "contact"), emptySection(id(45), "footer"),
@@ -46,9 +45,9 @@ const sections = [
 const layout = visualLayout.parse({
   style: {
     name: "Gusti al Piatto", description: "Cocina italiana. Pastas, pizza al horno y algo dulce para terminar.",
-    logoId: "", coverId: id(70), primary: "#a84027", secondary: "#303d2c", background: "#f8f4e9",
+    logoId: "", coverId: id(70), primary: "#a94f2b", secondary: "#56603b", background: "#f8f3e8",
     typography: "classic", icon: "utensils", headerStyle: "photo", fixedHeader: true, navigation: "horizontal",
-    fixedNavigation: false, compactMobile: true, categoryNavigation: true, cartStyle: "panel", cartVisible: true,
+    fixedNavigation: false, compactMobile: true, categoryNavigation: true, cartVisible: true,
     orderButton: "Abrir WhatsApp",
   },
   sections,

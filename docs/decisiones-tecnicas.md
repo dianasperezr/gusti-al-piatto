@@ -5,7 +5,7 @@
 - El menú público excluye borradores y promociones fuera de su vigencia. Los paquetes no se pueden solicitar cuando alguno de sus platillos deja de estar disponible. Los turnos pueden pasar de medianoche.
 - El carrito conserva identificadores y cantidades en el navegador. La API recalcula el total y construye el enlace de WhatsApp con los precios vigentes.
 - Multimedia almacena los archivos en disco persistente y sus metadatos en PostgreSQL. Las imágenes se normalizan a WebP. Los videos admiten rangos HTTP.
-- El PDF se genera con texto y paginación. El PNG usa el mismo diseño y reúne las páginas en una imagen. Las plantillas permiten guardar colores y formato.
+- El PDF y el PNG comparten una cuadrícula de dos columnas, con fotos del catálogo, encabezado por página y logotipo por plantilla. El titular, los colores y la posición del logotipo se guardan con el formato en las opciones de la plantilla.
 - Sheets sincroniza categorías y platillos por ID en ambas direcciones mediante acciones del administrador. Se comparan las huellas de ambos lados antes de sobrescribir el destino. Google Sheets carece de una operación de comparación y escritura atómica para este flujo.
 - Canva Connect usa OAuth con PKCE para importar una exportación PDF. El servidor cifra los tokens guardados en PostgreSQL.
 - La imagen final distribuye la salida standalone, sus recursos estáticos y un paquete independiente con el CLI de Prisma y las herramientas de arranque. `app` aplica el historial de Prisma antes de ejecutar Next.js y usa un pool de cinco conexiones. `/api/health` devuelve HTTP 503 cuando falla la conexión a PostgreSQL.
@@ -14,7 +14,7 @@
 
 - Los importes persistentes usan columnas enteras para precios y valores enteros en las configuraciones de complementos y promociones. La migración convierte el catálogo existente y conserva UUID, vínculos y archivos.
 - Los horarios se interpretan en la zona IANA del restaurante, incluido el día de apertura para turnos nocturnos. El menú refresca los datos mientras la pestaña está visible y el servidor revalida las solicitudes de WhatsApp.
-- Los archivos nuevos usan un almacenamiento en disco con claves relativas, carpetas por tipo y miniaturas separadas. Sharp redimensiona y FFmpeg transcodifica videos a MP4. El uso de almacenamiento se mantiene tras reinicios de los contenedores.
+- Los archivos nuevos usan un almacenamiento en disco con claves relativas, carpetas por tipo y miniaturas separadas. Sharp redimensiona y FFmpeg transcodifica MP4, MOV y WebM a H.264 en MP4 con arranque rápido. El ejecutable seleccionado proviene de la ruta configurada, del directorio local de herramientas o de PATH.
 
 ## Diseño visual y moneda
 
@@ -26,6 +26,7 @@
 
 - El navegador conserva la selección y las notas por línea. El servidor cotiza dos veces, al mostrar el resumen y al confirmar, con datos actuales del catálogo y los horarios. Una huella vincula la confirmación al resumen exacto.
 - El flujo usa Click to Chat. El registro opcional conserva la cotización y la referencia cuando se genera el enlace. El estado registrado describe una acción local y la confirmación del restaurante sucede en WhatsApp.
+- El mensaje muestra la selección y un único total. Los importes por línea y la referencia se conservan en la cotización y el historial administrativo.
 
 ## Esquema PostgreSQL normalizado
 
@@ -38,8 +39,13 @@
 ## Experiencia del panel y del menú
 
 - El panel comparte la navegación por rol y muestra el progreso dentro del enlace durante una transición. Los diálogos nativos gestionan el foco y permiten cancelar con Escape.
+- Los listados de catálogo y horarios se muestran a ancho completo. El formulario se abre desde la URL del registro o desde el enlace de alta. Los horarios usan el mismo modelo de reglas con una selección semanal o por fecha.
 - La carga múltiple envía cada archivo por separado a la acción existente. Así conserva los límites por archivo, permite reintentar fallos individuales y mantiene la clasificación de la cola.
-- El carrito reserva un área desplazable para las partidas y mantiene visibles los controles de revisión y envío. En móvil ocupa toda la pantalla. En escritorio sigue la presentación elegida en el constructor visual.
+- El menú público y su vista previa comparten los componentes y formatos del constructor. Los diseños guardados con la configuración de carrito anterior conservan la paleta y los títulos que mostraban. Los diseños nuevos aplican los títulos y colores editados directamente.
+- La búsqueda ignora acentos y consulta el nombre, la descripción, los ingredientes y la categoría. Las tarjetas muestran una miniatura cuando hay multimedia asociada. El detalle, las variantes y la galería se abren en un diálogo.
+- El carrito ocupa la pantalla completa y reserva un área desplazable para las partidas. Los importes aparecen con el mismo peso visual que el resto de la información secundaria.
+- El editor de platillos conserva los indicadores de publicación, actividad y destacado detrás de un solo desplegable. La lista de variantes usa los mismos grupos y validaciones que el carrito.
+- La migración de etiquetas y alérgenos elimina las columnas normalizadas y las claves del JSON de platillos. Los ingredientes y la información alimentaria siguen disponibles.
 
 ## Rendimiento y operación
 

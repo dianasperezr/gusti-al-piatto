@@ -143,7 +143,7 @@ button:disabled { opacity: .55; }
 .status { background: #eeeede; border-radius: 2rem; font-size: .875rem; padding: .2rem .55rem; flex: none; }
 .action-form { display: grid; gap: .85rem; margin-top: .85rem; }
 .action-form label { display: grid; gap: .3rem; align-content: start; font-size: .9rem; font-weight: 650; }
-.action-form input:not([type="checkbox"]), .action-form textarea, .action-form select { min-height: 40px; width: 100%; border: 1px solid #cfcec3; border-radius: .42rem; padding: .45rem .6rem; background: #fff; font-size: 1rem; font-weight: 400; }
+.action-form input:not([type="checkbox"], [type="radio"]), .action-form textarea, .action-form select { min-height: 40px; width: 100%; border: 1px solid #cfcec3; border-radius: .42rem; padding: .45rem .6rem; background: #fff; font-size: 1rem; font-weight: 400; }
 .action-form input[type="color"] { max-width: 8rem; padding: .25rem; }
 .action-form textarea { resize: vertical; }
 .action-form .check { display: flex; align-items: center; gap: .55rem; min-height: 38px; }
@@ -256,7 +256,6 @@ button:disabled { opacity: .55; }
 .visual-nav-side { display: flex; flex-direction: column; align-items: flex-start; overflow: visible; align-self: start; }
 .visual-nav-side a { white-space: normal; }
 .nav-fixed .visual-nav:not(.visual-nav-integrated) { position: sticky; top: var(--nav-offset); z-index: 5; background: var(--restaurant-background); }
-.cart-dialog.cart-centered { margin: auto; border-radius: .85rem; width: min(calc(100% - 1.4rem), 530px); height: auto; max-height: 90dvh; }
 @media (max-width: 760px) {
   .visual-columns, .visual-with-sidebar { grid-template-columns: 1fr; }
   .visual-nav-side { flex-direction: row; overflow-x: auto; }
@@ -277,6 +276,7 @@ button:disabled { opacity: .55; }
 .validated-order { display: grid; gap: .6rem; }
 .validated-order h3 { font-size: 1.1rem; font-weight: 700; }
 .validated-order li { display: grid; gap: .2rem; padding: .45rem 0; border-bottom: 1px solid var(--outline); }
+.validated-order .cart-item-copy { display: grid; gap: .2rem; }
 .add-to-cart { flex-wrap: wrap; }
 .cart-floating { position: fixed; right: 1rem; bottom: 1rem; z-index: 12; box-shadow: 0 2px 14px #0003; }
 .restaurant:has(.cart-floating) .cart-feedback { bottom: 4.4rem; }
@@ -310,7 +310,7 @@ button:disabled { opacity: .55; }
 .admin-layout .panel { background: #fff; }
 .admin-layout .stat strong { font: 680 2rem/1.12 system-ui, sans-serif; }
 .admin-layout .panel h2 { font-size: 1.075rem; }
-.admin-layout .action-form input:not([type="checkbox"]), .admin-layout .action-form textarea,
+.admin-layout .action-form input:not([type="checkbox"], [type="radio"]), .admin-layout .action-form textarea,
 .admin-layout .action-form select { border-color: var(--outline); }
 .admin-layout .admin-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr); }
 .admin-layout .upload-panel { margin-top: 0; }
@@ -369,14 +369,12 @@ button:disabled { opacity: .55; }
 html:has(.cart-dialog[open]) { overflow: hidden; }
 .cart-dialog { overflow: hidden; }
 .cart-panel { display: flex; flex-direction: column; max-height: inherit; height: 100%; padding: 0; }
-.cart-centered .cart-panel { height: auto; }
 .cart-panel > .panel-heading { margin: 0; padding: .9rem 1.15rem; border-bottom: 1px solid var(--outline); flex: none; }
 .cart-content { min-height: 0; flex: 1 1 auto; overflow: auto; overscroll-behavior: contain; padding: .5rem 1.15rem 1.15rem; }
 .cart-actions { display: grid; gap: .45rem; padding: .75rem 1.15rem max(.8rem, env(safe-area-inset-bottom)); border-top: 1px solid var(--outline); flex: none; }
 .cart-actions .button { min-height: 44px; }
 .cart-panel .circle-button { min-width: 44px; min-height: 44px; }
 .cart-mobile-only { display: none; }
-.cart-floating-total { margin-inline-start: auto; font-weight: 700; }
 .category-nav a, .cart-trigger { min-height: 44px; }
 .category-nav a { display: inline-flex; align-items: center; }
 .menu-card .add-to-cart { min-height: 44px; }
@@ -395,10 +393,7 @@ html:has(.cart-dialog[open]) { overflow: hidden; }
   .admin-topbar .button span { display: none; }
 }
 @media (max-width: 600px) {
-  .cart-dialog, .cart-dialog.cart-centered { width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }
-  .cart-centered .cart-panel { height: 100%; }
   .cart-floating { display: flex; left: 1rem; right: 1rem; bottom: max(.65rem, env(safe-area-inset-bottom)); min-height: 48px; padding-inline: .85rem; }
-  .cart-floating .cart-floating-total { display: inline; }
   .restaurant:has(.cart-floating) { padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
   .restaurant .topbar .restaurant-brand { min-width: 0; overflow-wrap: anywhere; }
   .restaurant .top-actions { flex: none; }

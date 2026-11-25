@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import sharp from "sharp";
 import { z } from "zod";
+import { videoTool } from "./video-tools";
 
 const run = promisify(execFile);
 const cropValue = z.coerce.number().min(0).max(100);
@@ -23,6 +24,17 @@ function bound(value: string | undefined, fallback: number, max: number) {
 export const maxBytes = () => Math.floor(bound(process.env.MEDIA_MAX_MB, 15, 30) * 1024 * 1024);
 export const maxDuration = () => bound(process.env.MEDIA_VIDEO_MAX_SECONDS, 30, 120);
 const commandOptions = { timeout: 35000, maxBuffer: 512_000 };
+
+async function runVideo(tool: "ffmpeg" | "ffprobe", args: string[]) {
+  try {
+    return await run(videoTool(tool), args, commandOptions);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error("Revisa la instalación de FFmpeg y FFprobe o sus rutas en el proyecto.");
+    }
+    throw error;
+  }
+}
 
 function extension(file: File) {
   return (file.name.split(".").at(-1) ?? "").toLowerCase();
@@ -56,42 +68,54 @@ export async function processImage(file: File, form?: FormData) {
 export async function processVideo(file: File, poster?: File) {
   if (!file.size || file.size > maxBytes()) throw new Error("Revisa el tamaño del video.");
   const bytes = Buffer.from(await file.arrayBuffer());
-  const mp4 = file.type === "video/mp4" && extension(file) === "mp4" && bytes.subarray(4, 8).toString("ascii") === "ftyp";
-  const webm = file.type === "video/webm" && extension(file) === "webm" && bytes.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
-  if (!mp4 && !webm) throw new Error("Revisa que el video sea MP4 o WebM y coincida con su extensión.");
+  const ext = extension(file);
+  const atom = bytes.subarray(4, 8).toString("ascii");
+  const genericMime = file.type === "" || file.type === "application/octet-stream";
+  const mp4 = (file.type === "video/mp4" || genericMime) && ext === "mp4" && atom === "ftyp";
+  const mov = (["video/quicktime", "video/mp4"].includes(file.type) || genericMime) && ext === "mov" && ["ftyp", "moov", "mdat", "wide", "free"].includes(atom);
+  const webm = (file.type === "video/webm" || genericMime) && ext === "webm" && bytes.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
+  if (!mp4 && !mov && !webm) throw new Error("Revisa que el video sea MP4, MOV o WebM y coincida con su extensión.");
   const work = await mkdtemp(join(tmpdir(), "gusti-video-"));
-  const input = join(work, mp4 ? "input.mp4" : "input.webm");
+  const input = join(work, "input." + ext);
   const output = join(work, "output.mp4");
   const preview = join(work, "preview.png");
   try {
     await writeFile(input, bytes, { mode: 0o600 });
-    const codecInput = ["-protocol_whitelist", "file,pipe", "-f", mp4 ? "mov" : "matroska"];
-    const { stdout } = await run(process.env.FFPROBE_PATH || "ffprobe", [
+    const codecInput = ["-protocol_whitelist", "file,pipe", "-f", webm ? "matroska" : "mov"];
+    const { stdout } = await runVideo("ffprobe", [
       "-v", "error", ...codecInput, "-select_streams", "v:0", "-show_entries", "format=duration:stream=codec_type,width,height", "-of", "json", input,
-    ], commandOptions);
+    ]);
     const metadata = z.object({
       streams: z.array(z.object({
         codec_type: z.literal("video"), width: z.number().int().positive().max(4096), height: z.number().int().positive().max(4096),
       })).min(1),
-      format: z.object({ duration: z.coerce.number().positive() }),
+      format: z.object({ duration: z.coerce.number().positive().optional().catch(undefined) }),
     }).parse(JSON.parse(stdout));
     const { duration } = metadata.format;
-    if (duration > maxDuration()) throw new Error("Revisa la duración máxima configurada para el video.");
-    await run(process.env.FFMPEG_PATH || "ffmpeg", [
-      "-nostdin", "-v", "error", "-threads", "1", ...codecInput, "-i", input, "-map", "0:v:0",
+    if (duration !== undefined && duration > maxDuration()) throw new Error("Revisa la duración máxima configurada para el video.");
+    await runVideo("ffmpeg", [
+      "-nostdin", "-v", "error", "-threads", "1", "-filter_threads", "1", ...codecInput, "-i", input, "-map", "0:v:0",
       "-an", "-map_metadata", "-1", "-vf", "scale=720:720:force_original_aspect_ratio=decrease:force_divisible_by=2",
-      "-t", String(maxDuration()), "-c:v", "libx264", "-threads", "1", "-preset", "fast", "-crf", "25",
+      "-t", String(maxDuration() + (duration === undefined ? 1 : 0)), "-c:v", "libx264", "-threads", "1", "-preset", "fast", "-crf", "25",
       "-pix_fmt", "yuv420p", "-movflags", "+faststart", output,
-    ], commandOptions);
+    ]);
+    let storedDuration = duration;
+    if (storedDuration === undefined) {
+      const outputProbe = await runVideo("ffprobe", [
+        "-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries", "format=duration", "-of", "csv=p=0", output,
+      ]);
+      storedDuration = z.coerce.number().positive().parse(outputProbe.stdout.trim());
+      if (storedDuration > maxDuration()) throw new Error("Revisa la duración máxima configurada para el video.");
+    }
     if ((await stat(output)).size > maxBytes()) throw new Error("Revisa el tamaño del video transcodificado.");
     const thumbnail = poster?.size ? (await processImage(poster)).thumbnail : await (async () => {
-      await run(process.env.FFMPEG_PATH || "ffmpeg", [
+      await runVideo("ffmpeg", [
         "-nostdin", "-v", "error", "-threads", "1", "-protocol_whitelist", "file,pipe", "-i", output,
         "-frames:v", "1", "-vf", "scale=480:-2", preview,
-      ], commandOptions);
+      ]);
       return sharp(await readFile(preview)).webp({ quality: 76 }).toBuffer();
     })();
-    return { data: await readFile(output), thumbnail, mime: "video/mp4", ext: "mp4", duration };
+    return { data: await readFile(output), thumbnail, mime: "video/mp4", ext: "mp4", duration: storedDuration };
   } finally {
     await rm(work, { recursive: true, force: true });
   }

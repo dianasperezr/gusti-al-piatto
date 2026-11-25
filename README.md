@@ -84,6 +84,8 @@ Consulta [las directivas](directivas/directivas.md), [las decisiones técnicas](
 
 Para actualizar una instalación existente, respalda PostgreSQL y ejecuta `pnpm db:deploy` antes de arrancar la versión nueva. La migración conserva usuarios, sesiones, archivos e historial de WhatsApp.
 
+La migración `20261125120000_remove_dish_tags_and_allergens` retira etiquetas y alérgenos de los platillos. Elimina las claves heredadas de `Content.options` y las columnas correspondientes de `dishes`.
+
 Apunta `DATABASE_URL` a una base desechable para cargar la semilla:
 
 ```bash
@@ -97,20 +99,27 @@ La semilla es idempotente. Incluye una categoría, un platillo con variantes y c
 ## Administración del catálogo
 
 - La barra lateral agrupa el catálogo, las herramientas de operación y las integraciones. **Configuración** reúne usuarios y auditoría. **Vista previa** abre el borrador privado en otra pestaña y **Menú** abre la carta publicada.
-- En **Platillos**, busca por nombre, slug, UUID o identificador de Sheets. Cambia entre tabla y tarjetas, selecciona filas para aplicar cambios en lote y arrastra los registros para ordenar. Los botones de subir y bajar permiten ordenar con teclado. Archivar conserva las relaciones y permite restaurar el registro como borrador.
-- Para **variantes y complementos**, escribe un grupo por línea. Por ejemplo: `Tamaño | 1 | 1 | Sencilla=0 | Doble=35` y `Extras | 0 | 2 | Queso=15 | Tocino=20`. Los importes del formulario se leen en la moneda base y se guardan en centavos enteros. Cambiar la moneda base convierte los importes persistidos con el tipo de cambio indicado y redondea al centavo.
-- En **Horarios y disponibilidad**, publica reglas del restaurante, reglas dirigidas al menú o cierres especiales. Selecciona días, fecha de excepción si aplica, objetivos, prioridad y comportamiento. En reglas simultáneas gana la de mayor prioridad que esté dentro de horario. Si ninguna está activa, se aplica el comportamiento exterior de la de mayor prioridad. Una categoría oculta también oculta su contenido. Para un cierre de día completo configura la misma hora inicial y final.
+- **Platillos**, **Categorías**, **Paquetes**, **Promociones** y **Horarios** muestran el listado en el área principal. **Agregar nuevo registro** y **Editar** abren el formulario en una ventana. Usa lista o cuadrícula, los filtros y el menú de estado de cada fila. Selecciona varias filas para aplicar cambios en lote y usa el asa o los botones de subir y bajar para ordenar.
+- En **Variantes y complementos**, pulsa **Agregar variante**, elige o escribe un nombre y agrega opciones en la lista. Usa mínimo 0 para un grupo opcional. Los importes se leen en la moneda base y se guardan en centavos enteros. Cambiar la moneda base convierte los importes persistidos con el tipo de cambio indicado y redondea al centavo.
+- En **Horarios**, elige horario general, horario de menú o cierre. Selecciona días en la semana o una fecha específica. Para un feriado elige **Cierre o feriado**, marca **Todo el día** y publica la regla. Para un turno como desayuno puedes elegir **Horario de menú** y asignarlo a las categorías o platillos correspondientes. En reglas simultáneas de menú gana la de mayor prioridad que esté dentro de horario.
 - En **Promociones**, un precio fijo por grupo se aplica a cada grupo completo de la cantidad indicada. Una promoción de dos unidades a 199 pesos usa 2 como mínimo y 19900 como importe. Los complementos se cobran aparte. La promoción de mayor prioridad se aplica primero y la acumulación requiere que las promociones involucradas la permitan.
 - Los **paquetes** admiten precio fijo o calculado a partir de sus componentes y cantidades. Publica una plantilla de paquetes o promociones para descargar un PDF/PNG o enviar el PDF a Canva.
-- En **Multimedia**, sube una imagen o video, elige su carpeta y adjúntalo como principal o agrégalo a una galería. Reemplazar conserva las referencias. Los recortes usan porcentajes sobre la imagen orientada. Los límites se ajustan con `MEDIA_MAX_MB` y `MEDIA_VIDEO_MAX_SECONDS`. La imagen Docker incluye FFmpeg y FFprobe. En ejecución local instala ambos para procesar video o configura `FFMPEG_PATH` y `FFPROBE_PATH`.
+- En **Multimedia**, sube imágenes o videos MP4, MOV y WebM. El medio principal aparece primero en el carrusel del platillo, seguido de la galería en el orden elegido. Los límites se ajustan con `MEDIA_MAX_MB` y `MEDIA_VIDEO_MAX_SECONDS`. Los recortes usan porcentajes sobre la imagen orientada.
+- En los editores, **Seleccionar archivo** abre la biblioteca con miniaturas y búsqueda. Una carga desde esa ventana queda seleccionada en el editor. Guarda el platillo o el diseño para aplicar la selección.
 - Puedes seleccionar o arrastrar varios archivos a la cola multimedia. La clasificación se aplica a la cola y cada archivo muestra su resultado. Para adjuntar una portada o aplicar un recorte, usa **Subir un archivo con recorte o portada**.
 - La nueva hoja de Sheets usa las columnas A a K, con precio en moneda base e identificador externo. El UUID sigue siendo la clave de sincronización. Al migrar una hoja anterior, envía el catálogo para actualizar los encabezados y verifica la pestaña antes de volver a importar.
 
 Las imágenes, videos y miniaturas nuevas viven bajo `/app/storage/uploads/` en Docker. Los archivos cargados antes del cambio siguen leyéndose desde su ubicación anterior en el mismo volumen.
 
+Docker instala FFmpeg y FFprobe. En ejecución local, coloca las dos herramientas de tu plataforma en `.local-tools/bin/` o instálalas en `PATH`. Puedes definir `FFMPEG_PATH` y `FFPROBE_PATH` para priorizar rutas específicas. Ejecuta `pnpm media:check` para verificar ambas herramientas y el codificador H.264. [Distribuciones de FFmpeg](https://ffmpeg.org/download.html).
+
+## Plantillas y exportaciones
+
+En **Exportaciones**, crea o edita una plantilla y elige su contenido, formato y colores. Escribe un titular, por ejemplo «Menú del día», y selecciona el logotipo y su posición. Publica la plantilla y descarga el PDF o el PNG. La cuadrícula usa las fotografías asociadas, agrupa los platillos por categoría y repite el encabezado al paginar. Canva importa el mismo PDF.
+
 ## Constructor visual y monedas
 
-En **Diseño del menú** o **Constructor de secciones**, agrega componentes, configura sus propiedades y arrastra desde el asa para cambiar el orden. Con teclado, enfoca el asa, pulsa espacio, usa las flechas y pulsa espacio de nuevo. **Guardar y ver vista previa** abre el borrador en un marco de escritorio o móvil. **Publicar diseño** reemplaza el diseño público con esa versión. Los cambios de contacto, disponibilidad y moneda se gestionan en sus paneles y se reflejan en el diseño publicado.
+En **Diseño del menú** o **Constructor de secciones**, agrega secciones y configura sus propiedades. Los campos dependen del tipo de sección. Para los bloques que muestran varios elementos, elige **Cuadrícula**, **Lista** o **Ancho completo**. Arrastra desde el asa para cambiar el orden. Con teclado, enfoca el asa, pulsa espacio, usa las flechas y pulsa espacio de nuevo. **Guardar y ver vista previa** abre el borrador en la sección seleccionada en un marco de escritorio o móvil. **Publicar diseño** reemplaza el diseño público con esa versión. Los cambios de contacto, disponibilidad y moneda se gestionan en sus paneles y se reflejan en el diseño publicado.
 
 En **Monedas y precios**, habilita MXN y USD, elige la moneda base y registra el tipo de cambio en cualquiera de las dos direcciones. La base permanece habilitada. El servidor registra la fecha cuando cambia el valor o la dirección. Puedes configurar el redondeo de conversiones y mostrar símbolos, códigos ISO o ambos. La selección del cliente dura lo que dura la sesión de la pestaña.
 
@@ -118,11 +127,11 @@ Los precios alternativos se derivan del único importe en moneda base. Los preci
 
 ## Carrito y solicitudes por WhatsApp
 
-En móvil, el carrito ocupa la pantalla y mantiene el total y el siguiente paso a la vista. En escritorio usa el panel lateral o el modal centrado según el diseño publicado.
+El carrito se abre a pantalla completa en móvil y escritorio. Las partidas se pueden desplazar y los controles de revisión quedan accesibles al pie.
 
-En **Pedidos y WhatsApp**, configura el número internacional completo, la moneda principal que acepta el restaurante, los textos, la disponibilidad y el registro opcional. **Monedas visibles** lleva a la configuración monetaria compartida por el menú y el carrito. Puedes usar los horarios generales y añadir una ventana específica para pedidos. Los cierres especiales se respetan en ambos casos.
+En **Pedidos y WhatsApp**, configura el número internacional completo, los textos, la disponibilidad y el registro opcional. **Monedas visibles** lleva a la configuración monetaria compartida por el menú y el carrito. Puedes usar los horarios generales y añadir una ventana específica para pedidos. Los cierres especiales se respetan en ambos casos.
 
-El resumen se valida en el servidor. Si cambia un importe, vuelve a confirmar el resumen actualizado. Al confirmarlo se genera un enlace oficial con el mensaje y la referencia. El cliente revisa y envía el mensaje dentro de WhatsApp o WhatsApp Web. [Documentación oficial de Click to Chat](https://faq.whatsapp.com/5913398998672934).
+El servidor valida el resumen y genera un enlace que incluye artículos, cantidades, notas y el total de la cuenta. Si cambia un importe, vuelve a revisar el resumen actualizado. El cliente revisa y envía el mensaje dentro de WhatsApp o WhatsApp Web. [Documentación oficial de Click to Chat](https://faq.whatsapp.com/5913398998672934).
 
 Al activar el historial se guardan los importes, el tipo de cambio, los artículos y sus notas. El nombre opcional se incluye en el mensaje de WhatsApp. El historial distingue entre enlace generado y referencia cancelada localmente. La cancelación local afecta al registro administrativo. Los mensajes compartidos se gestionan en WhatsApp.
 

@@ -1,4 +1,7 @@
-export const mediaAccept = "image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm";
+export const videoAccept = "video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm";
+export const mediaAccept = "image/jpeg,image/png,image/webp,image/avif," + videoAccept;
+export const isVideoUpload = (file: File) => videoAccept.split(",").includes(file.type) ||
+  (!file.type || file.type === "application/octet-stream") && /\.(mp4|mov|webm)$/i.test(file.name);
 
 export function UploadFolder() {
   return <label>Clasificación<select name="folder">

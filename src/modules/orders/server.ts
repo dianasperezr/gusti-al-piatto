@@ -45,7 +45,7 @@ export async function checkout(input: OrderInput) {
   };
   function version(id: string) {
     const summary = { ...totals, reference: "ORD-" + id.replaceAll("-", "").slice(0, 16).toUpperCase() };
-    const message = whatsappMessage(summary, contact.introduction, contact.acceptedCurrency);
+    const message = whatsappMessage(summary, contact.introduction);
     const fingerprint = createHash("sha256").update(JSON.stringify([id, summary, contact.whatsapp, message])).digest("hex");
     const result: QuoteReply = { id, fingerprint, summary };
     return { result, message };
@@ -84,7 +84,7 @@ export async function checkout(input: OrderInput) {
     });
     const current = existing?.snapshot as { fingerprint?: string } | undefined;
     if (current?.fingerprint !== fingerprint || existing?.status === "CANCELLED") {
-      return reply({ error: "Vuelve a revisar la solicitud para generar una nueva referencia." }, 409);
+      return reply({ error: "Vuelve a revisar la solicitud para generar un nuevo enlace." }, 409);
     }
   }
   return reply({ ...result, url });

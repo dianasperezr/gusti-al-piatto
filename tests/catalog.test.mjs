@@ -4,6 +4,8 @@ import { isRestaurantOpen } from "../src/modules/catalog/hours.ts";
 import { inWindow, evaluateRules } from "../src/modules/hours/rules.ts";
 import { unitCents, quoteCart } from "../src/modules/catalog/pricing.ts";
 import { applyOffers } from "../src/modules/promotions/rules.ts";
+import { parseGroupFields } from "../src/modules/products/options.ts";
+import { productStatus, productStatuses, statusFor } from "../src/modules/admin/product-status.ts";
 
 test("un turno nocturno de lunes sigue abierto hasta la hora final del martes", () => {
   const shift = [{ day: 1, opens: "19:00", closes: "01:30" }];
@@ -45,4 +47,20 @@ test("el formato usa símbolos personalizados y conserva el código cuando se co
   const { formatPrice } = await import("../src/modules/catalog/pricing.ts");
   assert.match(formatPrice(12800, "USD", { display: "both", usdSymbol: "US$", mxnSymbol: "" }), /US\$\s*128\.00 USD/);
   assert.match(formatPrice(12800, "MXN"), /MXN.*128\.00/);
+});
+
+test("las variantes de la lista conservan sus nombres y validan los límites y centavos", () => {
+  const variant = { name: "Salsa | Picante", min: 1, max: 1, choices: [{ name: "Chile = 2", amount: "12.50" }] };
+  assert.deepEqual(parseGroupFields(JSON.stringify([variant])), [
+    { name: variant.name, min: 1, max: 1, choices: [{ name: "Chile = 2", cents: 1250 }] },
+  ]);
+  assert.throws(() => parseGroupFields(JSON.stringify([{ ...variant, max: 2 }])));
+  assert.throws(() => parseGroupFields(JSON.stringify([{ ...variant, choices: [{ name: "Chile", amount: "1.005" }] }])));
+});
+
+test("el desplegable representa todas las combinaciones de estados de platillos existentes", () => {
+  for (const [key, flags] of Object.entries(productStatuses)) {
+    assert.equal(statusFor(flags), productStatus.parse(key));
+  }
+  assert.equal(productStatus.safeParse("__proto__").success, false);
 });

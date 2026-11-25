@@ -39,19 +39,19 @@ test("la lectura local descarta líneas dañadas y conserva las variantes válid
   assert.deepEqual(cart, { valid: { ...valid, selections: [{ group: "Tamaño", choices: ["Grande"] }], note: "" } });
 });
 
-test("el mensaje de WhatsApp incluye moneda, referencia y notas de cada línea", () => {
+test("el mensaje de WhatsApp incluye artículos y notas con un único importe total", () => {
   const message = whatsappMessage({
     reference: "ORD-TEST", lines: [{ id, name: "Hamburguesa", quantity: 2, selections: [], note: "Sin cebolla",
       unit: 1100, baseUnit: 22000, subtotal: 2200, discount: 200, total: 2000, labels: ["Tamaño: Grande"],
       offers: ["Martes"], components: [] }],
     currency: "USD", baseCurrency: "MXN", baseTotal: 40000, subtotal: 2200, discount: 200, total: 2000,
     name: "", note: "Sin cubiertos", exchange: { rate: 20, direction: "mxn-per-usd", updatedAt: "", guaranteed: false },
-  }, "Hola", "MXN");
-  assert.match(message, /SOLICITUD DE MENÚ DIGITAL · USD/);
+  }, "Hola");
+  assert.match(message, /2 × Hamburguesa/);
   assert.match(message, /Nota del platillo: Sin cebolla/);
   assert.match(message, /Tamaño: Grande/);
   assert.match(message, /Notas generales: Sin cubiertos/);
-  assert.match(message, /1 USD = 20 MXN/);
-  assert.match(message, /Referencia: ORD-TEST/);
-  assert.doesNotMatch(message, /Nombre:/);
+  assert.match(message, /Total: USD\s20\.00$/u);
+  assert.doesNotMatch(message, /Subtotal|Precio unitario|Descuento|Referencia|Gracias|Moneda principal|Tipo de cambio|Nombre:/i);
+  assert.equal([...message.matchAll(/\b(?:USD|MXN)\b/g)].length, 1);
 });

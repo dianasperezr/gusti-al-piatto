@@ -29,34 +29,20 @@ export type QuoteReply = { id: string; fingerprint: string; summary: OrderSummar
 
 const oneLine = (value: string) => value.replace(/\s+/gu, " ").trim();
 
-export function whatsappMessage(summary: OrderSummary, introduction: string, accepted: Currency) {
-  const money = (value: number) => formatPrice(value, summary.currency);
+export function whatsappMessage(summary: OrderSummary, introduction: string) {
   const lines = summary.lines.map(line => [
-    line.name,
-    `Cantidad: ${line.quantity}`,
+    `${line.quantity} × ${line.name}`,
     ...line.labels,
     ...line.components.map(component => "Incluye: " + component),
     ...(line.note ? ["Nota del platillo: " + oneLine(line.note)] : []),
-    "Precio unitario: " + money(line.unit),
-    "Subtotal: " + money(line.subtotal),
-    ...(line.discount ? ["Descuento: " + money(line.discount), ...line.offers.map(offer => "Promoción: " + offer)] : []),
   ].join("\n"));
-  const exchange = summary.exchange;
   return [
     oneLine(introduction),
-    `SOLICITUD DE MENÚ DIGITAL · ${summary.currency}`,
     lines.join("\n\n"),
     [
-      "RESUMEN", "Subtotal: " + money(summary.subtotal), "Descuentos: " + money(summary.discount), "TOTAL: " + money(summary.total),
-      ...(summary.currency !== summary.baseCurrency ? [
-        "Total en moneda base: " + formatPrice(summary.baseTotal, summary.baseCurrency),
-        "Tipo de cambio: " + (exchange.direction === "mxn-per-usd" ? `1 USD = ${exchange.rate} MXN` : `1 MXN = ${exchange.rate} USD`),
-        exchange.guaranteed ? "Tipo de cambio garantizado por el restaurante." : "Conversión de referencia.",
-      ] : []),
-      `Moneda principal aceptada: ${accepted}.`,
       ...(summary.name ? ["Nombre: " + oneLine(summary.name)] : []),
       ...(summary.note ? ["Notas generales: " + oneLine(summary.note)] : []),
-      "Referencia: " + summary.reference, "Gracias. ¿Podrían confirmar disponibilidad y total?",
+      "Total: " + formatPrice(summary.total, summary.currency),
     ].join("\n"),
   ].filter(Boolean).join("\n\n");
 }

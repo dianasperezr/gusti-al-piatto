@@ -33,10 +33,24 @@ export function parseGroups(value: string) {
   return optionGroups.parse(groups);
 }
 
-export function formatGroups(groups: OptionGroup[]) {
-  return groups.map(group => [group.name, group.min, group.max,
-    ...group.choices.map(choice => `${choice.name}=${(choice.cents / 100).toFixed(2)}`),
-  ].join(" | ")).join("\n");
+const groupFields = z.array(z.object({
+  name: shortText,
+  min: z.number().int(),
+  max: z.number().int(),
+  choices: z.array(z.object({ name: shortText, amount: z.string().max(12) })).max(30),
+})).max(12);
+
+export function parseGroupFields(value: unknown) {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(z.string().max(240_000).parse(value));
+  } catch {
+    throw new Error("Revisa el formato de las variantes.");
+  }
+  return optionGroups.parse(groupFields.parse(raw).map(group => ({
+    ...group,
+    choices: group.choices.map(({ name, amount }) => ({ name, cents: decimalCents(amount) })),
+  })));
 }
 
 export function decimalCents(value: string | number) {

@@ -6,7 +6,9 @@ import { Play } from "lucide-react";
 export function MenuVideo({ src, poster, name }: { src: string; poster?: string; name: string }) {
   const [playing, setPlaying] = useState(false);
   if (playing) return <div className="video-frame">
-    <video src={src} poster={poster} controls autoPlay playsInline preload="none" aria-label={name} className="cover-media" />
+    <video src={src} poster={poster} controls autoPlay muted playsInline preload="metadata" aria-label={name} className="cover-media">
+      <a href={src}>Abrir video</a>
+    </video>
   </div>;
   return <div className="video-frame">
     {poster && (

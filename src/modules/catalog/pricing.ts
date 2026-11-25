@@ -4,7 +4,7 @@ import { applyOffers, type Offer } from "../promotions/offer-pricing.ts";
 
 import type { MonetarySettings, Currency } from "../currencies/settings.ts";
 export type { Currency } from "../currencies/settings.ts";
-export type PublicMedia = { src: string; video: boolean; poster?: string };
+export type PublicMedia = { id?: string; src: string; video: boolean; poster?: string };
 export type CatalogItem = {
   id: string;
   slug?: string;
@@ -12,9 +12,7 @@ export type CatalogItem = {
   name: string;
   description: string;
   details?: string;
-  tags?: string[];
   ingredients?: string[];
-  allergens?: string[];
   nutrition?: string;
   media: PublicMedia | null;
   gallery: PublicMedia[];
@@ -28,6 +26,14 @@ export type CatalogItem = {
   groups: OptionGroup[];
   offers: Offer[];
 };
+
+export function itemMediaList(item: Pick<CatalogItem, "media" | "gallery">) {
+  return [...new Map([item.media, ...item.gallery].flatMap(media => media ? [[media.src, media] as const] : [])).values()];
+}
+
+export function previewMedia(item: Pick<CatalogItem, "media" | "gallery">) {
+  return itemMediaList(item).find(media => !media.video || media.poster);
+}
 
 type Conversion = Pick<MonetarySettings, "direction" | "rounding" | "increment">;
 export function convertCents(cents: number, from: Currency, to: Currency, rate: number, settings: Conversion = { direction: "mxn-per-usd", rounding: "nearest", increment: 1 }) {

@@ -23,9 +23,7 @@ export const options = {
   PRODUCT: z.object({
     available: z.boolean(),
     details: copy.default(""),
-    tags: z.array(short).max(30).default([]),
     ingredients: z.array(short).max(60).default([]),
-    allergens: z.array(short).max(30).default([]),
     nutrition: copy.default(""),
     groups: optionGroups.default([]),
   }),
@@ -44,6 +42,9 @@ export const options = {
   TEMPLATE: z.object({
     background: color, foreground: color, accent: color, format: z.enum(["portrait", "square"]),
     content: z.enum(["menu", "bundles", "promotions"]).default("menu"),
+    headline: short.default(""),
+    logoId: z.union([z.uuid(), z.literal("")]).default(""),
+    logoPosition: z.enum(["left", "center", "right"]).default("right"),
   }),
   DESIGN: z.object({ eyebrow: short, accent: color, background: color, logoId: z.union([z.uuid(), z.literal("")]) }),
   CONTACT: z.object({
@@ -77,9 +78,9 @@ const dateFields: Field[] = [
   { name: "opens", label: "Desde", type: "time", initial: "", optional: true },
   { name: "closes", label: "Hasta", type: "time", initial: "", optional: true },
 ];
-const behaviorChoices: Field["choices"] = behaviors.map((behavior, index) => [behavior, [
+export const behaviorChoices = behaviors.map((behavior, index) => [behavior, [
   "Mostrar normalmente", "Destacar", "Mover al final", "Ocultar", "Marcar como no disponible",
-][index]]);
+][index]] as const);
 
 export const weekdays = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
@@ -94,9 +95,7 @@ export const panels: Record<string, Panel> = {
   platillos: { title: "Platillos", kind: "PRODUCT", media: true, fields: [
     ...pricing,
     { name: "details", label: "Descripción completa", type: "textarea", initial: "", optional: true },
-    { name: "tags", label: "Etiquetas (separadas por coma)", type: "list", initial: "", optional: true },
     { name: "ingredients", label: "Ingredientes (separados por coma)", type: "list", initial: "", optional: true },
-    { name: "allergens", label: "Alérgenos (separados por coma)", type: "list", initial: "", optional: true },
     { name: "nutrition", label: "Información alimentaria", type: "textarea", initial: "", optional: true },
     { name: "groups", label: "Variantes y complementos", type: "groups", initial: "", optional: true },
   ] },
@@ -120,7 +119,7 @@ export const panels: Record<string, Panel> = {
     ...dateFields,
   ] },
   horarios: { title: "Horarios y disponibilidad", kind: "HOURS", fields: [
-    { name: "mode", label: "Tipo de regla", type: "select", initial: "menu", choices: [["menu", "Disponibilidad del menú"], ["restaurant", "Horario del restaurante"], ["closed", "Cierre especial"]] },
+    { name: "mode", label: "Tipo de regla", type: "select", initial: "restaurant", choices: [["menu", "Horario de menú"], ["restaurant", "Horario general"], ["closed", "Cierre o feriado"]] },
     { name: "days", label: "Días de apertura (vacío: todos)", type: "days", initial: "", optional: true },
     { name: "date", label: "Aplicar solo en esta fecha", type: "date", initial: "", optional: true },
     { name: "opens", label: "Apertura", type: "time", initial: "12:00" },
@@ -145,6 +144,11 @@ export const panels: Record<string, Panel> = {
     { name: "url", label: "Destino del enlace", type: "url", initial: "", optional: true },
   ] },
   plantillas: { title: "Plantillas y exportaciones", kind: "TEMPLATE", fields: [
+    { name: "headline", label: "Titular de la plantilla", type: "text", initial: "", optional: true },
+    { name: "logoId", label: "Logotipo de la plantilla", type: "image", initial: "", optional: true },
+    { name: "logoPosition", label: "Posición del logotipo", type: "select", initial: "right", choices: [
+      ["left", "Izquierda"], ["center", "Centro"], ["right", "Derecha"],
+    ] },
     { name: "content", label: "Contenido de la pieza", type: "select", initial: "menu", choices: [
       ["menu", "Carta completa"], ["bundles", "Paquetes"], ["promotions", "Promociones"],
     ] },
@@ -157,7 +161,6 @@ export const panels: Record<string, Panel> = {
     { name: "whatsapp", label: "Número internacional completo de WhatsApp", type: "text", initial: "", optional: true },
     { name: "countryCode", label: "Código de país (por ejemplo, 52)", type: "text", initial: "", optional: true },
     { name: "cartEnabled", label: "Habilitar carrito", type: "checkbox", initial: true },
-    { name: "acceptedCurrency", label: "Moneda principal aceptada por el restaurante", type: "select", initial: "MXN", choices: [["MXN", "MXN"], ["USD", "USD"]] },
     { name: "actionText", label: "Texto del botón de WhatsApp", type: "text", initial: "", optional: true },
     { name: "introduction", label: "Introducción del mensaje", type: "textarea", initial: "Hola, quisiera realizar el siguiente pedido.", optional: true },
     { name: "confirmationText", label: "Mensaje visual al abrir WhatsApp", type: "textarea", initial: "Tu solicitud está preparada para que la envíes por WhatsApp.", optional: true },

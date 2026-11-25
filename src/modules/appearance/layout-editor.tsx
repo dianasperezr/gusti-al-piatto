@@ -3,30 +3,38 @@
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { Boxes, CalendarDays, Clapperboard, Contact, Grid2X2, GripVertical, Image as ImageIcon, Images, LayoutList, Maximize2, PanelBottom, PanelTop, PanelsTopLeft, Sparkles, Tag, Utensils } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useId, useRef, useState } from "react";
 import { MediaPicker, type MediaOption } from "@/modules/media/picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { saveVisualForm } from "./layout-actions";
-import { emptySection, sectionNames, type SectionKind, type VisualLayout, type VisualSection } from "./layout-schema";
+import { emptySection, sectionControls, sectionNames, sectionPresentations, sectionTitle, type SectionKind, type VisualLayout, type VisualSection } from "./layout-schema";
+import "./layout-editor.css";
 
 type Resource = { id: string; name: string; mime?: string };
 const pairs = Object.entries(sectionNames) as [SectionKind, string][];
+const sectionIcons = {
+  hero: PanelTop, banner: ImageIcon, catalog: Utensils, daily: CalendarDays, featured: Sparkles,
+  combos: Boxes, promotions: Tag, gallery: Images, videos: Clapperboard, info: PanelsTopLeft, contact: Contact, footer: PanelBottom,
+};
+const presentationIcons = { grid: Grid2X2, list: LayoutList, wide: Maximize2 };
 const settings = {
   typography: [["classic", "Clásica"], ["modern", "Moderna"], ["editorial", "Editorial"]],
-  icon: [["utensils", "Cubiertos"], ["leaf", "Hoja"], ["none", "Ocultar icono"]],
+  icon: [["utensils", "Marca Gusti"], ["leaf", "Hoja"], ["none", "Ocultar icono"]],
   headerStyle: [["minimal", "Minimalista"], ["photo", "Con fotografía"], ["banner", "Con banner"], ["compact", "Compacto"], ["integrated", "Navegación integrada"]],
   navigation: [["horizontal", "Horizontal"], ["side", "Lateral"], ["tabs", "Pestañas"], ["none", "Oculta"]],
-  cartStyle: [["panel", "Panel lateral"], ["center", "Modal centrado"]],
 } as const;
 
-function SectionRow({ section, selected, onSelect }: { section: VisualSection; selected: boolean; onSelect: () => void }) {
+function SectionRow({ section, restaurant, selected, onSelect }: { section: VisualSection; restaurant: string; selected: boolean; onSelect: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: section.id });
+  const Icon = sectionIcons[section.type];
   return <li ref={setNodeRef} className="visual-row" style={{ transform: CSS.Transform.toString(transform), transition }}>
     <button type="button" className="button small drag-handle" {...attributes} {...listeners} aria-label={"Reordenar " + sectionNames[section.type]}><GripVertical size={18} /></button>
-    <button type="button" className={selected ? "button small primary" : "button small"} onClick={onSelect} aria-pressed={selected}>
-      {section.title || sectionNames[section.type]}{section.hidden ? " · Oculta" : ""}
+    <button type="button" className="visual-row-button" onClick={onSelect} aria-pressed={selected}>
+      <span className="visual-row-icon"><Icon size={17} aria-hidden="true" /></span>
+      <span><strong>{sectionTitle(section, restaurant) || "Del corazón a la mesa."}</strong>
+        <small>{sectionNames[section.type]}{section.hidden ? " · Oculta" : ""}</small></span>
     </button>
   </li>;
 }
@@ -43,6 +51,7 @@ export function LayoutEditor({ initial, assets, categories, published }: {
   const [adding, setAdding] = useState<SectionKind>("banner");
   const [mode, setMode] = useState<"mobile" | "desktop">("desktop");
   const [preview, setPreview] = useState(false);
+  const [previewSection, setPreviewSection] = useState("");
   const [state, action, pending] = useActionState(saveVisualForm, {});
   const removeDialog = useRef<HTMLDialogElement>(null);
   const dndId = useId();
@@ -50,6 +59,9 @@ export function LayoutEditor({ initial, assets, categories, published }: {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const section = layout.sections.find(item => item.id === selectedId);
   const style = layout.style;
+  const controls = section && sectionControls[section.type];
+  const useCover = ["photo", "banner", "integrated"].includes(style.headerStyle);
+  const SectionIcon = section ? sectionIcons[section.type] : null;
 
   function updateStyle<K extends keyof VisualLayout["style"]>(key: K, value: VisualLayout["style"][K]) {
     setLayout(current => ({ ...current, style: { ...current.style, [key]: value } }));
@@ -72,7 +84,7 @@ export function LayoutEditor({ initial, assets, categories, published }: {
 
   const labels = {
     typography: "Tipografía", icon: "Iconografía", headerStyle: "Estilo del encabezado",
-    navigation: "Navegación", cartStyle: "Presentación del carrito",
+    navigation: "Navegación",
   };
   const flags = {
     fixedHeader: "Encabezado fijo", fixedNavigation: "Navegación fija", compactMobile: "Navegación móvil compacta",
@@ -85,7 +97,10 @@ export function LayoutEditor({ initial, assets, categories, published }: {
       <div><h2>Constructor visual</h2><p>{published ? "El menú público usa el último diseño publicado." : "El menú público usa su diseño inicial."}</p></div>
       <div className="export-links">
         <button className="button" name="operation" value="draft" disabled={pending}>Guardar borrador</button>
-        <button className="button" name="operation" value="draft" disabled={pending} onClick={() => setPreview(true)}>Guardar y ver vista previa</button>
+        <button className="button" name="operation" value="draft" disabled={pending} onClick={() => {
+          setPreview(true);
+          setPreviewSection(section?.hidden ? "" : section?.id ?? "");
+        }}>Guardar y ver vista previa</button>
         <button className="button primary" name="operation" value="publish" disabled={pending}>
           {pending && <span className="loading-spinner" aria-hidden="true" />}{pending ? "Guardando…" : "Publicar diseño"}
         </button>
@@ -100,7 +115,7 @@ export function LayoutEditor({ initial, assets, categories, published }: {
         <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={reorder}
           accessibility={{ screenReaderInstructions: { draggable: "Pulsa espacio para tomar una sección, usa las flechas para moverla y espacio para soltarla." } }}>
           <SortableContext items={layout.sections.map(item => item.id)} strategy={verticalListSortingStrategy}>
-            <ol className="visual-list">{layout.sections.map(item => <SectionRow key={item.id} section={item} selected={selectedId === item.id} onSelect={() => select(item.id)} />)}</ol>
+            <ol className="visual-list">{layout.sections.map(item => <SectionRow key={item.id} section={item} restaurant={style.name} selected={selectedId === item.id} onSelect={() => select(item.id)} />)}</ol>
           </SortableContext>
         </DndContext>
         <div className="action-form">
@@ -112,25 +127,46 @@ export function LayoutEditor({ initial, assets, categories, published }: {
       </section>
 
       <div className="visual-properties">
-        {section && <section className="panel"><h2>Propiedades de la sección</h2>
+        {section && controls && SectionIcon && <section className="panel">
+          <h2 className="visual-section-title"><span className="visual-row-icon"><SectionIcon size={20} aria-hidden="true" /></span> {sectionNames[section.type]}</h2>
           <div className="action-form">
-            <div className="field-grid">
-              <label>Componente<select value={section.type} onChange={event => updateSection("type", event.target.value as SectionKind)}>{pairs.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-              <label>Presentación<select value={section.layout} onChange={event => updateSection("layout", event.target.value as VisualSection["layout"])}><option value="grid">Cuadrícula</option><option value="list">Lista</option><option value="wide">Ancha</option></select></label>
-            </div>
-            <label>Título<input maxLength={140} value={section.title} onChange={event => updateSection("title", event.target.value)} /></label>
-            <label>Descripción<textarea maxLength={2000} rows={3} value={section.description} onChange={event => updateSection("description", event.target.value)} /></label>
-            <div className="field-grid">
-              <label>Categoría de origen<select value={section.categoryId} onChange={event => updateSection("categoryId", event.target.value)}>
+            <label>Tipo de sección<select value={section.type} onChange={event => {
+              const type = event.target.value as SectionKind;
+              setLayout(current => ({ ...current, sections: current.sections.map(item => item.id === section.id
+                ? { ...item, type, title: item.title === sectionNames[item.type] ? sectionNames[type] : item.title } : item) }));
+            }}>{pairs.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <label>Título<input maxLength={140} value={section.title} placeholder={section.type === "hero" ? "Del corazón a la mesa." : sectionTitle({ ...section, title: "" }, style.name)}
+              onChange={event => updateSection("title", event.target.value)} /></label>
+            <label>Descripción<textarea maxLength={2000} rows={3} value={section.description}
+              placeholder={section.type === "hero" ? style.description : section.type === "footer" ? "Del corazón a la mesa" : undefined}
+              onChange={event => updateSection("description", event.target.value)} /></label>
+            {controls.layout && <fieldset>
+              <legend>Presentación</legend>
+              <div className="visual-presentations">{(Object.keys(sectionPresentations) as VisualSection["layout"][]).map(value => {
+                const Icon = presentationIcons[value];
+                return <button type="button" key={value} className="button" aria-pressed={section.layout === value} onClick={() => updateSection("layout", value)}>
+                  <Icon size={19} aria-hidden="true" /> {sectionPresentations[value]}
+                </button>;
+              })}</div>
+            </fieldset>}
+            {(controls.category || controls.limit) && <div className="field-grid">
+              {controls.category && <label>Categoría<select value={section.categoryId} onChange={event => updateSection("categoryId", event.target.value)}>
                 <option value="">Todas</option>{categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select></label>
-              <label>Máximo de elementos<input type="number" min={1} max={48} value={section.limit} onChange={event => updateSection("limit", Number(event.target.value))} /></label>
-            </div>
-            <MediaPicker key={section.id} label="Multimedia" multiple ordered initial={knownAssets.filter(asset => section.media.includes(asset.id))}
-              selected={section.media} onChange={(ids, items) => { rememberAssets(items); updateSection("media", ids); }} />
+              </select></label>}
+              {controls.limit && <label>{section.type === "catalog" ? "Platillos por categoría" : "Máximo de elementos"}
+                <input type="number" min={1} max={48} value={section.limit || ""} onChange={event => updateSection("limit", Number(event.target.value))} /></label>}
+            </div>}
+            {controls.media && (section.type !== "hero" || useCover) && <MediaPicker key={section.id + section.type}
+              label={controls.media === "one" ? "Imagen o video de la sección" : controls.media === "images" ? "Imágenes" : controls.media === "videos" ? "Videos" : "Imágenes y videos"}
+              multiple={controls.media !== "one"} ordered={controls.media !== "one"} maxSelections={16} images={controls.media === "images"} videos={controls.media === "videos"}
+              initial={knownAssets.filter(asset => section.media.includes(asset.id))}
+              selected={section.media.filter(id => {
+                const asset = knownAssets.find(item => item.id === id);
+                return controls.media === "images" ? asset?.mime.startsWith("image/") : controls.media === "videos" ? asset?.mime.startsWith("video/") : true;
+              }).slice(0, controls.media === "one" ? 1 : 16)} onChange={(ids, items) => { rememberAssets(items); updateSection("media", ids); }} />}
             <div className="field-grid">
-              <label>Texto del enlace<input maxLength={140} value={section.button} onChange={event => updateSection("button", event.target.value)} /></label>
-              <label>URL del enlace<input type="url" value={section.url} onChange={event => updateSection("url", event.target.value)} /></label>
+              <label>Texto del botón<input maxLength={140} value={section.button} placeholder={section.type === "hero" ? "Descubrir el menú" : section.type === "contact" ? "Cómo llegar" : undefined} onChange={event => updateSection("button", event.target.value)} /></label>
+              <label>Destino del botón<input type="url" placeholder="https://" value={section.url} onChange={event => updateSection("url", event.target.value)} /></label>
             </div>
             <label className="check"><input type="checkbox" checked={section.hidden} onChange={event => updateSection("hidden", event.target.checked)} /> Ocultar temporalmente</label>
             <div className="export-links">
@@ -145,11 +181,11 @@ export function LayoutEditor({ initial, assets, categories, published }: {
           </div>
         </section>}
 
-        <section className="panel"><h2>Configuración general</h2>
+        <details className="panel visual-global"><summary>Configuración general</summary>
           <div className="action-form">
             <label>Nombre del restaurante<input required maxLength={140} value={style.name} onChange={event => updateStyle("name", event.target.value)} /></label>
             <label>Descripción<textarea maxLength={2000} rows={3} value={style.description} onChange={event => updateStyle("description", event.target.value)} /></label>
-            <div className="field-grid">{(["logoId", "coverId"] as const).map(key => <MediaPicker key={key} label={key === "logoId" ? "Logotipo" : "Portada"}
+            <div className="field-grid">{(["logoId", "coverId"] as const).filter(key => key === "logoId" || useCover).map(key => <MediaPicker key={key} label={key === "logoId" ? "Logotipo" : "Portada predeterminada"}
               images={key === "logoId"} initial={knownAssets.filter(asset => asset.id === style[key])}
               selected={style[key] ? [style[key]] : []}
               onChange={(ids, items) => { rememberAssets(items); updateStyle(key, ids[0] ?? ""); }} />)}</div>
@@ -162,11 +198,11 @@ export function LayoutEditor({ initial, assets, categories, published }: {
             </select></label>)}</div>
             {(Object.keys(flags) as (keyof typeof flags)[]).map(key => <label className="check" key={key}>
               <input type="checkbox" checked={style[key]} onChange={event => updateStyle(key, event.target.checked)} /> {flags[key]}</label>)}
-            <label>Texto del botón de pedido<input maxLength={140} value={style.orderButton} onChange={event => updateStyle("orderButton", event.target.value)} /></label>
+            <label>Texto predeterminado del botón de pedido<input maxLength={140} value={style.orderButton} onChange={event => updateStyle("orderButton", event.target.value)} /></label>
             <div className="export-links"><Link className="button small" href="/admin/pedidos">Contacto, redes y WhatsApp</Link>
               <Link className="button small" href="/admin/horarios">Horarios generales</Link><Link className="button small" href="/admin/monedas">Monedas y precios</Link></div>
           </div>
-        </section>
+        </details>
       </div>
     </div>
 
@@ -178,7 +214,7 @@ export function LayoutEditor({ initial, assets, categories, published }: {
           <button className="button small" type="button" onClick={() => setPreview(false)}>Cerrar vista previa</button>
         </div>
       </div>
-      <div className="preview-scroll"><iframe key={state.revision} title={"Vista previa " + mode} src={"/admin/preview?v=" + state.revision} width={mode === "mobile" ? 390 : 1100} height={mode === "mobile" ? 720 : 680} /></div>
+      <div className="preview-scroll"><iframe key={state.revision} title={"Vista previa " + mode} src={"/admin/preview?v=" + state.revision + (previewSection ? "#" + previewSection : "")} width={mode === "mobile" ? 390 : 1100} height={mode === "mobile" ? 720 : 680} /></div>
     </section>}
   </div>;
 }

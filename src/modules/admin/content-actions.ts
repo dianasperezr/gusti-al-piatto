@@ -10,9 +10,9 @@ import { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/modules/auth/session";
 import { normalizeNumber } from "@/modules/orders/settings";
 import { convertCents } from "@/modules/catalog/pricing";
-import { cents } from "@/modules/products/options";
-import { decimalCents, parseGroups, uuidList } from "@/modules/products/options";
+import { cents, decimalCents, parseGroupFields, parseGroups, uuidList } from "@/modules/products/options";
 import { contentFields, panelFor, parseOptions } from "./config";
+import { productStatus, productStatuses } from "./product-status";
 
 export type FormStatus = { error?: string; success?: string };
 
@@ -31,9 +31,11 @@ export async function saveContent(section: string, suppliedId: string | null, _:
   const values = Object.fromEntries(form);
   let savedId: string;
   try {
+    const status = panel.kind === "PRODUCT" && form.has("productStatus")
+      ? productStatuses[productStatus.parse(values.productStatus)] : undefined;
     const content = contentFields.parse({
       name: values.name, description: values.description ?? "", position: values.position ?? 0,
-      published: panel.singleton || values.published === "on",
+      published: panel.singleton || (status?.published ?? values.published === "on"),
       categoryId: ["PRODUCT", "CATEGORY"].includes(panel.kind) ? values.categoryId || null : null,
       mediaId: panel.media ? values.mediaId || null : null,
     });
@@ -48,7 +50,7 @@ export async function saveContent(section: string, suppliedId: string | null, _:
       if (field.type === "currencies") return [field.name, form.getAll(field.name)];
       if (field.type === "targets") return [field.name, form.getAll(field.name)];
       if (field.type === "list") return [field.name, String(value).split(",").map(text => text.trim()).filter(Boolean)];
-      if (field.type === "groups") return [field.name, parseGroups(String(value))];
+      if (field.type === "groups") return [field.name, form.has("groupsJson") ? parseGroupFields(values.groupsJson) : parseGroups(String(value))];
       return [field.name, value];
     })));
     if ("opens" in options && Boolean(options.opens) !== Boolean(options.closes)) {
@@ -138,8 +140,8 @@ export async function saveContent(section: string, suppliedId: string | null, _:
         if (!logo.length) throw new Error("Selecciona un logotipo válido.");
       }
 
-      const active = !form.has("manageStatus") || values.active === "on";
-      const data = { ...content, options: storedOptions, active, featured: values.featured === "on", priceCents, slug, externalId, subcategoryId };
+      const active = status?.active ?? (!form.has("manageStatus") || values.active === "on");
+      const data = { ...content, options: storedOptions, active, featured: status?.featured ?? values.featured === "on", priceCents, slug, externalId, subcategoryId };
       const record = panel.singleton && id
         ? await tx.content.upsert({ where: { id }, update: data, create: { ...data, id, kind: panel.kind } })
         : id

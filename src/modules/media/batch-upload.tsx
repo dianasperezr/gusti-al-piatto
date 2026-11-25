@@ -3,7 +3,7 @@
 import { Upload, X } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { saveMedia } from "./actions";
-import { mediaAccept, UploadFolder } from "./upload-fields";
+import { isVideoUpload, mediaAccept, UploadFolder } from "./upload-fields";
 
 type Entry = { id: number; file: File; status: "queued" | "uploading" | "done" | "failed"; message?: string };
 
@@ -16,7 +16,7 @@ export function BatchUpload({ maxMegabytes, maxSeconds }: { maxMegabytes: number
 
   function add(files: FileList) {
     const next = [...files].map((file): Entry => {
-      const validType = mediaAccept.split(",").includes(file.type);
+      const validType = accepts(file);
       const validSize = file.size > 0 && file.size <= maxMegabytes * 1024 * 1024;
       return { id: sequence.current++, file, status: validType && validSize ? "queued" : "failed",
         message: !validType ? "Formato no compatible." : !validSize ? "Tamaño fuera del límite." : undefined };
@@ -24,8 +24,10 @@ export function BatchUpload({ maxMegabytes, maxSeconds }: { maxMegabytes: number
     setEntries(previous => [...previous, ...next]);
   }
 
-  const ready = queue.filter(({ file }) => file.size > 0 && file.size <= maxMegabytes * 1024 * 1024 &&
-    mediaAccept.split(",").includes(file.type));
+  function accepts(file: File) {
+    return mediaAccept.split(",").includes(file.type) || isVideoUpload(file);
+  }
+  const ready = queue.filter(({ file }) => file.size > 0 && file.size <= maxMegabytes * 1024 * 1024 && accepts(file));
 
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

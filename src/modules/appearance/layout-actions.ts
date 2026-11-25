@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { invalidatePublicMenu } from "@/modules/catalog/menu-cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/modules/auth/session";
-import { mediaUsed, visualLayout, type VisualLayout } from "./layout-schema";
+import { mediaUsed, sectionControls, visualLayout, type VisualLayout } from "./layout-schema";
 import { draftKey, publishedKey } from "./layout-store";
 import type { FormStatus } from "@/modules/admin/content-actions";
 
@@ -23,7 +23,8 @@ export async function saveVisual(input: VisualLayout, publish: boolean): Promise
       if (value.style.logoId && !media.find(asset => asset.id === value.style.logoId)?.mime.startsWith("image/")) {
         throw new Error("Revisa el logotipo. Debe ser una imagen.");
       }
-      const categoryIds = [...new Set(value.sections.map(section => section.categoryId).filter(Boolean))];
+      const categoryIds = [...new Set(value.sections.filter(section => sectionControls[section.type].category)
+        .map(section => section.categoryId).filter(Boolean))];
       if (await tx.content.count({ where: { kind: "CATEGORY", id: { in: categoryIds }, archivedAt: null } }) !== categoryIds.length) {
         throw new Error("Revisa las categorías seleccionadas.");
       }

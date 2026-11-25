@@ -23,7 +23,7 @@ try {
       create: {
         id: fixtureId(2), categoryId: category.id, name: "Pasta al pomodoro",
         slug: "demo-pomodoro", priceCents: 14500, isPublished: true,
-        ingredients: ["Pasta", "Tomate"], allergens: ["Gluten"],
+        ingredients: ["Pasta", "Tomate"],
         variants: { create: { name: "Porción grande", priceAdjustmentCents: 3500 } },
         modifierGroups: { create: { name: "Extras", maxSelections: 1, modifiers: {
           create: { name: "Parmesano", priceAdjustmentCents: 1800 },

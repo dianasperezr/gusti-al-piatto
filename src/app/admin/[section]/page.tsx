@@ -20,15 +20,17 @@ import { syncCatalog } from "@/modules/sheets-sync/sync";
 import { canvaConfig, canvaStatus } from "@/modules/appearance/canva";
 import { checkCanvaJob, connectCanva, createCanvaJob, unlinkCanva } from "@/modules/appearance/canva-actions";
 
-const mediaOption = { id: true, mime: true, name: true } as const;
+const mediaOption = { id: true, mime: true, name: true, thumbnail: true } as const;
+const pickerAsset = ({ thumbnail, ...asset }: { id: string; mime: string; name: string; thumbnail: string | null }) =>
+  ({ ...asset, hasThumbnail: Boolean(thumbnail) });
 const detail = {
   comboItems: { select: { productId: true, quantity: true } },
   gallery: { orderBy: { position: "asc" as const }, select: { mediaId: true } },
 };
-const summary = { id: true, name: true, slug: true, externalId: true, categoryId: true, published: true,
-  active: true, featured: true, archivedAt: true, mediaId: true } as const;
+const summary = { id: true, name: true, description: true, slug: true, externalId: true, categoryId: true, published: true,
+  active: true, featured: true, archivedAt: true, mediaId: true, media: { select: { mime: true, thumbnail: true } } } as const;
 const ordering = [{ position: "asc" }, { name: "asc" }, { id: "asc" }] as const;
-const statuses = z.enum(["", "published", "draft", "inactive", "featured", "archive"]).catch("");
+const statuses = z.enum(["", "published", "draft", "active", "inactive", "featured", "archive"]).catch("");
 
 const privileged: Record<string, string> = {
   sheets: "Google Sheets", canva: "Integración Canva", usuarios: "Usuarios y permisos", auditoria: "Historial y auditoría",
@@ -36,10 +38,10 @@ const privileged: Record<string, string> = {
 
 export default async function AdminSection({ params, searchParams }: {
   params: Promise<{ section: string }>;
-  searchParams: Promise<{ editar?: string; resultado?: string; pagina?: string; q?: string; estado?: string; categoria?: string }>;
+  searchParams: Promise<{ editar?: string; nuevo?: string; resultado?: string; pagina?: string; q?: string; estado?: string; categoria?: string; tipo?: string }>;
 }) {
   const { section } = await params;
-  const { editar, resultado, pagina, q, estado, categoria } = await searchParams;
+  const { editar, nuevo, resultado, pagina, q, estado, categoria, tipo } = await searchParams;
   const page = readPage(pagina);
   const paging = { skip: (page - 1) * pageSize, take: pageSize + 1 };
   const editable = z.uuid().safeParse(editar).data;
@@ -59,22 +61,27 @@ export default async function AdminSection({ params, searchParams }: {
     ]);
     const ids = mediaUsed(layout);
     const assets = ids.length ? await db().media.findMany({ where: { id: { in: ids } }, select: mediaOption }) : [];
-    body = <LayoutEditor initial={layout} assets={assets} categories={categories} published={published} />;
+    body = <LayoutEditor initial={layout} assets={assets.map(pickerAsset)} categories={categories} published={published} />;
   } else if (panel) {
     const specialized = ["PRODUCT", "CATEGORY", "COMBO", "PROMOTION", "HOURS"].includes(panel.kind);
+    const showEditor = !specialized || !!editable || nuevo === "1";
+    const typeKey = panel.kind === "HOURS" ? "mode" : panel.kind === "COMBO" ? "priceMode" : panel.kind === "PROMOTION" ? "method" : "";
+    const typeChoices = panel.fields.find(field => field.name === typeKey)?.choices ?? [];
+    const type = typeChoices.some(([key]) => key === tipo) ? tipo : undefined;
     const [entries, record, categories, products, targets, schedules, affected] = await Promise.all([
       panel.singleton ? [] : db().content.findMany({
         where: {
           kind: panel.kind, ...(specialized ? { archivedAt: status === "archive" ? { not: null } : null } : {}),
           ...(status === "published" ? { published: true } : status === "draft" ? { published: false } :
-            status === "inactive" ? { active: false } : status === "featured" ? { featured: true } : {}),
+            status === "active" ? { active: true } : status === "inactive" ? { active: false } : status === "featured" ? { featured: true } : {}),
           ...(category ? { categoryId: category } : {}),
+          ...(type ? { options: { path: [typeKey], equals: type } } : {}),
           ...(search ? { OR: [
             { id: { contains: search, mode: "insensitive" } }, { name: { contains: search, mode: "insensitive" } },
             { slug: { contains: search, mode: "insensitive" } }, { externalId: { contains: search, mode: "insensitive" } },
           ] } : {}),
         },
-        select: summary, orderBy: [...ordering], ...paging,
+        select: { ...summary, options: !!typeKey }, orderBy: [...ordering], ...paging,
       }),
       panel.singleton || editable ? db().content.findFirst({
         where: { kind: panel.kind, ...(panel.singleton ? {} : { id: editable }) }, orderBy: [...ordering], include: detail,
@@ -82,15 +89,15 @@ export default async function AdminSection({ params, searchParams }: {
       ["PRODUCT", "CATEGORY"].includes(panel.kind) ? db().content.findMany({
         where: { kind: "CATEGORY", archivedAt: null }, select: { id: true, name: true, categoryId: true }, orderBy: { name: "asc" },
       }) : [],
-      ["COMBO", "CATEGORY"].includes(panel.kind) ? db().content.findMany({
+      showEditor && ["COMBO", "CATEGORY"].includes(panel.kind) ? db().content.findMany({
         where: { kind: "PRODUCT", ...(panel.kind === "CATEGORY" ? { archivedAt: null } : {}) },
         select: { id: true, name: true, active: true, published: true, priceCents: true }, orderBy: { name: "asc" },
       }) : [],
-      ["HOURS", "PROMOTION"].includes(panel.kind) ? db().content.findMany({
+      showEditor && ["HOURS", "PROMOTION"].includes(panel.kind) ? db().content.findMany({
         where: { kind: { in: panel.kind === "HOURS" ? ["CATEGORY", "PRODUCT", "COMBO", "PROMOTION"] : ["CATEGORY", "PRODUCT", "COMBO"] }, archivedAt: null },
         select: { id: true, name: true, kind: true }, orderBy: { name: "asc" },
       }) : [],
-      panel.kind === "CATEGORY" ? db().content.findMany({ where: { kind: "HOURS", archivedAt: null, options: { path: ["mode"], equals: "menu" } }, select: { id: true, name: true } }) : [],
+      showEditor && panel.kind === "CATEGORY" ? db().content.findMany({ where: { kind: "HOURS", archivedAt: null, options: { path: ["mode"], equals: "menu" } }, select: { id: true, name: true } }) : [],
       panel.kind === "PRODUCT" && editable ? db().content.findMany({
         where: { kind: "COMBO", archivedAt: null, comboItems: { some: { productId: editable } } }, select: { id: true, name: true },
       }) : [],
@@ -99,17 +106,18 @@ export default async function AdminSection({ params, searchParams }: {
     const mediaIds = [record?.mediaId, options?.logoId, ...record?.gallery.map(item => item.mediaId) ?? []]
       .filter((id): id is string => z.uuid().safeParse(id).success);
     const media = mediaIds.length ? await db().media.findMany({ where: { id: { in: mediaIds } }, select: mediaOption }) : [];
-    const filters = { q: search, estado: status, categoria: category ?? "", pagina: page > 1 ? String(page) : "" };
+    const filters = { q: search, estado: status, categoria: category ?? "", tipo: type ?? "", pagina: page > 1 ? String(page) : "" };
     const labels = { CATEGORY: "Categoría", PRODUCT: "Platillo", COMBO: "Paquete", PROMOTION: "Promoción" };
     body = <>
       {section === "pedidos" && <div className="export-links">
         <Link className="button" href="/admin/solicitudes">Historial de solicitudes</Link>
         <Link className="button" href="/admin/monedas">Monedas visibles</Link>
       </div>}
-      <ContentEditor section={section} record={record} filters={filters} entries={entries.slice(0, pageSize)} media={media} categories={categories}
+      <ContentEditor section={section} record={record} showEditor={showEditor} filters={filters} typeChoices={typeChoices} typeKey={typeKey}
+        entries={entries.slice(0, pageSize)} media={media.map(pickerAsset)} categories={categories}
         products={products} targets={targets.map(target => ({ ...target, name: (labels[target.kind as keyof typeof labels] ?? "") + " / " + target.name }))}
         schedules={schedules} affected={affected} />
-      <Pagination path={`/admin/${section}`} page={page} more={entries.length > pageSize} params={{ ...filters, editar: editable }} />
+      <Pagination path={`/admin/${section}`} page={page} more={entries.length > pageSize} params={filters} />
     </>;
   } else if (section === "multimedia") {
     const [records, replacement] = await Promise.all([

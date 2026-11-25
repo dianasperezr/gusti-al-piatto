@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { parseOptions } from "@/modules/admin/config";
-import { emptySection, visualLayout, type SectionKind, type VisualLayout } from "./layout-schema";
+import { emptySection, readVisualLayout, type SectionKind, type VisualLayout } from "./layout-schema";
 
 export const draftKey = "visual:draft";
 export const publishedKey = "visual:published";
@@ -10,8 +10,8 @@ export const publishedKey = "visual:published";
 async function visualStates(preview: boolean) {
   const states = await db().integrationState.findMany({ where: { key: { in: preview ? [draftKey, publishedKey] : [publishedKey] } } });
   return {
-    draft: visualLayout.safeParse(states.find(state => state.key === draftKey)?.value).data,
-    published: visualLayout.safeParse(states.find(state => state.key === publishedKey)?.value).data,
+    draft: readVisualLayout(states.find(state => state.key === draftKey)?.value),
+    published: readVisualLayout(states.find(state => state.key === publishedKey)?.value),
   };
 }
 
@@ -48,11 +48,11 @@ export async function initialVisual(): Promise<{ layout: VisualLayout; published
   return { published: false, layout: {
     style: {
       name: design?.name ?? "Gusti al piatto", description: design?.description ?? "La cocina italiana, servida a tu manera.",
-      logoId: options?.logoId ?? "", coverId: design?.mediaId ?? "", primary: options?.accent ?? "#a84027",
-      secondary: "#303d2c", background: options?.background ?? "#f8f4e9",
+      logoId: options?.logoId ?? "", coverId: design?.mediaId ?? "", primary: options?.accent ?? "#a94f2b",
+      secondary: "#56603b", background: options?.background ?? "#f8f3e8",
       typography: "classic", icon: "utensils", headerStyle: "photo", fixedHeader: true, navigation: "horizontal",
       fixedNavigation: false, compactMobile: true, categoryNavigation: true,
-      cartStyle: "panel", cartVisible: true, orderButton: "Abrir WhatsApp",
+      cartVisible: true, orderButton: "Abrir WhatsApp",
     },
     sections,
   } };
